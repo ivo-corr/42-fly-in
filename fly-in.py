@@ -31,22 +31,31 @@ class Map():
             self.type = ZoneType.NORMAL
             self.color = [
                 c for c in Color if str(c) == "Color." + color.upper()][0]
-            self.connections: list[Map.Zone.Connection] = []
+            self._connections: list[Map.Zone.Connection] = []
+
+        def set_connection(self, dest: "Map.Zone"):
+            self._connections.append(Map.Zone.Connection(self, []))
+
+        def get_connections(self):
+            pass
 
     def __init__(self, pconfig: str):
-        breakpoint()
         self._zones: list[Map.Zone] = []
         for c in pconfig:
             if ('hub' in c[0]):
                 self._zones.append(Map.Zone(c[1].split(" ")[0],
                                             c[1].split(" ")[1:3],
-                                            color=tmp if
-                                            (tmp := c[1].split("[")[1].split(
-                                                '=')[1][:-1]).upper() in
-                                            Color.__members__
-                                            else "none"))
+                                            color=[co for co in
+                                                   Color.__members__
+                                                   if co in c[1].upper()][0]))
             if (c[0].lower() == "connection"):
-                print(f"Found connection {c}")
+                origen: str = c[1].split("-")[0]
+                destination: str = c[1].split("-")[1]
+                for z in self._zones:
+                    if z.name.lower() == origen.lower():
+                        for zz in self._zones:
+                            if zz.name.lower() == destination.lower():
+                                z.set_connection(zz)
 
     def get_zones(self):
         return self._zones
@@ -72,6 +81,6 @@ def parse_config(file: str):
 if __name__ == "__main__":
     with open("maps/easy/01_linear_path.txt") as file:
         pconfig = parse_config(file.read())
-    # [print(c) for c in pconfig]
+
     m: Map = Map(pconfig)
-    print(m.get_zones())
+    [print(z.name, z.coords, z.color, z.get_connections()) for z in m.get_zones()]
