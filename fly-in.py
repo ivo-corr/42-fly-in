@@ -24,6 +24,9 @@ class Map():
                 self.dest = dest
                 self.capacity = max_capacity
 
+            def show(self):
+                return f"{self.orig.name} <=> {self.dest.name}"
+
         def __init__(self, name: str, coords: tuple[str, str] | list[str],
                      color: str = "NONE"):
             self.name: str = name
@@ -34,10 +37,13 @@ class Map():
             self._connections: list[Map.Zone.Connection] = []
 
         def set_connection(self, dest: "Map.Zone"):
-            self._connections.append(Map.Zone.Connection(self, []))
+            self._connections.append(Map.Zone.Connection(self, dest))
 
         def get_connections(self):
-            pass
+            return (self._connections)
+
+        def show(self):
+            return f"{self.name}:\n\tCoordinates: {self.coords}\n\tColor: {self.color}\n\tConnections: {[c.show() for c in self._connections]}"
 
     def __init__(self, pconfig: str):
         self._zones: list[Map.Zone] = []
@@ -56,6 +62,7 @@ class Map():
                         for zz in self._zones:
                             if zz.name.lower() == destination.lower():
                                 z.set_connection(zz)
+                                zz.set_connection(z)
 
     def get_zones(self):
         return self._zones
@@ -83,4 +90,4 @@ if __name__ == "__main__":
         pconfig = parse_config(file.read())
 
     m: Map = Map(pconfig)
-    [print(z.name, z.coords, z.color, z.get_connections()) for z in m.get_zones()]
+    [print(z.show()) for z in m.get_zones()]
