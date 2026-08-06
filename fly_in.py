@@ -42,11 +42,19 @@ class Map():
         def get_connections(self):
             return (self._connections)
 
-        def show(self):
-            return f"{self.name}:\n\tCoordinates: {self.coords}\n\tColor: {self.color}\n\tConnections: {[c.show() for c in self._connections]}"
+        def show(self, mode: int = 1):
+            if mode == 0:
+                return f"""{self.name}:
+    Coordinates: {self.coords}
+    Type: {self.type}
+    Color: {self.color}
+    Connections: {[c.show() for c in self._connections]}"""
+            else:
+                pass
 
     def __init__(self, pconfig: str):
         self._zones: list[Map.Zone] = []
+        self.dimensions: list[int] = [0, 0]
         for c in pconfig:
             if ('hub' in c[0]):
                 self._zones.append(Map.Zone(c[1].split(" ")[0],
@@ -75,13 +83,7 @@ def parse_config(file: str):
     result.extend(
         [[s[0], s[1]] for s in
          [ss.split(": ") for ss in splat if len(ss.split(": ")) == 2]])
-    # for r in result:
-    #     r[1] = r[1].split(" ", 1)
-    #     if len(r) >= 2 and "=" in r[1]:
-    #         result[result.index(r)] = [
-    #             r[1].split("[")[0],
-    #             [x[:-1] if x[-1] == ']' else x for x in
-    #              r[1].split("[")[1].split("=")]]
+
     return (result)
 
 
@@ -90,4 +92,4 @@ if __name__ == "__main__":
         pconfig = parse_config(file.read())
 
     m: Map = Map(pconfig)
-    [print(z.show()) for z in m.get_zones()]
+    [print(z.show(0)) for z in m.get_zones()]
