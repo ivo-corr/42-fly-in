@@ -1,4 +1,5 @@
 from enum import Enum
+import graphics
 
 
 class Color(Enum):
@@ -6,6 +7,8 @@ class Color(Enum):
     GREEN = 1
     RED = 2
     BLUE = 3
+    ORANGE = 4
+    YELLOW = 5
 
 
 class ZoneType(Enum):
@@ -58,10 +61,14 @@ class Map():
         for c in pconfig:
             if ('hub' in c[0]):
                 self._zones.append(Map.Zone(c[1].split(" ")[0],
-                                            c[1].split(" ")[1:3],
+                                            tmp := c[1].split(" ")[1:3],
                                             color=[co for co in
                                                    Color.__members__
                                                    if co in c[1].upper()][0]))
+                if (int(tmp[0]) > self.dimensions[0]):
+                    self.dimensions[0] = int(tmp[0])
+                if (int(tmp[1]) > self.dimensions[1]):
+                    self.dimensions[1] = int(tmp[1])
             if (c[0].lower() == "connection"):
                 origen: str = c[1].split("-")[0]
                 destination: str = c[1].split("-")[1]
@@ -83,7 +90,6 @@ def parse_config(file: str):
     result.extend(
         [[s[0], s[1]] for s in
          [ss.split(": ") for ss in splat if len(ss.split(": ")) == 2]])
-
     return (result)
 
 
@@ -93,3 +99,5 @@ if __name__ == "__main__":
 
     m: Map = Map(pconfig)
     [print(z.show(0)) for z in m.get_zones()]
+    print(f"Map size: {m.dimensions}")
+    graphics.render(m)
