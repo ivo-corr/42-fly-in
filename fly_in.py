@@ -92,8 +92,6 @@ class Map():
                     self.dimensions[0] = int(tmp[0])
                 if (int(tmp[1]) > self.dimensions[1]):
                     self.dimensions[1] = int(tmp[1])
-                print("=====")
-                [print(z.coords) for z in self._zones]
             if (c[0].lower() == "connection"):
                 origen: str = c[1].split("-")[0]
                 destination: str = c[1].split("-")[1]
@@ -124,7 +122,7 @@ def parse_config(file: str):
 
 
 if __name__ == "__main__":
-    with open("maps/easy/02_simple_fork.txt") as file:
+    with open("maps/hard/03_basic_capacity.txt") as file:
         pconfig = parse_config(file.read())
 
     m: Map = Map(pconfig)

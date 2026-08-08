@@ -14,6 +14,7 @@ def render_base(width: int, height: int) -> list[list[str]]:
 
 def render_zones(amap: list[list[str]], zones: list[fi.Map.Zone]) -> None:
     zone: str = '\x1b[40m\x1b[100m█\x1b[47m3\x1b[90m██\x1b[0m'
+    connectors: list[str] = ["─", "│", "┌", "┐", "└",  "┘"]
     for row in [i for i in range(len(amap)) if i % 2 == 1]:
         for cell in [c for c in range(len(amap[0])) if c % 2 == 1]:
             if [cell // 2, row // 2] in [z.coords for z in zones]:
