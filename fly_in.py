@@ -58,17 +58,42 @@ class Map():
     def __init__(self, pconfig: str):
         self._zones: list[Map.Zone] = []
         self.dimensions: list[int] = [0, 0]
+        delta: int = 0
+        '''
+        delta denotes the y-axis offset caused by the weird negative index
+        notation that was chosen for the map config files
+        '''
         for c in pconfig:
+
             if ('hub' in c[0]):
-                self._zones.append(Map.Zone(c[1].split(" ")[0],
-                                            tmp := c[1].split(" ")[1:3],
-                                            color=[co for co in
-                                                   Color.__members__
-                                                   if co in c[1].upper()][0]))
+                # breakpoint()
+                if int(c[1].split(" ")[1:3][1]) < 0:
+                    # breakpoint()
+                    absolute: int = abs(int(c[1].split(" ")[1:3][1]))
+                    for z in self._zones:
+                        z.coords = [z.coords[0], z.coords[1] + absolute]
+                    self._zones.append(Map.Zone(c[1].split(" ")[0],
+                                                tmp := [c[1].split(" ")[1], 0],
+                                                color=[co for co in
+                                                Color.__members__
+                                                if co in c[1].upper()][0]))
+                    delta = absolute if absolute > delta else delta
+                else:
+                    tmp = c[1].split(" ")[1:3]
+                    if (delta > 0):
+                        tmp[1] = str(int(tmp[1]) + delta)
+                    self._zones.append(Map.Zone(c[1].split(" ")[0],
+                                                tmp,
+                                                color=[co for co in
+                                                       Color.__members__
+                                                       if co in c[1].upper()]
+                                                [0]))
                 if (int(tmp[0]) > self.dimensions[0]):
                     self.dimensions[0] = int(tmp[0])
                 if (int(tmp[1]) > self.dimensions[1]):
                     self.dimensions[1] = int(tmp[1])
+                print("=====")
+                [print(z.coords) for z in self._zones]
             if (c[0].lower() == "connection"):
                 origen: str = c[1].split("-")[0]
                 destination: str = c[1].split("-")[1]
@@ -78,6 +103,11 @@ class Map():
                             if zz.name.lower() == destination.lower():
                                 z.set_connection(zz)
                                 zz.set_connection(z)
+        for z in self._zones:
+            if (int(z.coords[0]) > self.dimensions[0]):
+                self.dimensions[0] = int(z.coords[0])
+            if (int(z.coords[1]) > self.dimensions[1]):
+                self.dimensions[1] = int(z.coords[1])
 
     def get_zones(self):
         return self._zones
@@ -94,10 +124,10 @@ def parse_config(file: str):
 
 
 if __name__ == "__main__":
-    with open("maps/easy/01_linear_path.txt") as file:
+    with open("maps/easy/02_simple_fork.txt") as file:
         pconfig = parse_config(file.read())
 
     m: Map = Map(pconfig)
-    [print(z.show(0)) for z in m.get_zones()]
+    # [print(z.show(0)) for z in m.get_zones()]
     print(f"Map size: {m.dimensions}")
     graphics.render(m)
