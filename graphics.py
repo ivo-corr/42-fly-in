@@ -15,6 +15,11 @@ def render_base(width: int, height: int,
 
 def render_zones(amap: list[list[str]], zones: list[fi.Map.Zone],
                  zone_padding: int = 6) -> None:
+    def is_occupied(x: int, y: int):
+        if amap[x][y] == '\x1b[90m' + '█'*zone_padding + '\x1b[0m':
+            return False
+        return True
+
     zone: str = '\x1b[40m\x1b[100m█\x1b[47m{}\x1b[90m██\x1b[0m'
     connectors: list[str] = ["─", "│", "┌", "┐", "└",  "┘"]
     colors = {
@@ -34,19 +39,21 @@ def render_zones(amap: list[list[str]], zones: list[fi.Map.Zone],
     }
     for row in [i for i in range(len(amap)) if i % 2 == 1]:
         for cell in [c for c in range(len(amap[0])) if c % 2 == 1]:
+            # (cell // 2, row // 2) is the mapping from the rendered map to the logical map
             if [cell // 2, row // 2] in [z.coords for z in zones]:
                 zdrones = [len(z.drones) for z in zones if z.coords ==
                            [cell // 2, row // 2]][0]
-                # cell_content = f'\x1b[40m\x1b[100m█\x1b[47m'\
-                #                   f'{zdrones}\x1b[90m' +\
-                #     '██' if (len(str(zdrones)) == 1) else '█' + '\x1b[0m'
                 c = [
                     colors[color.name] for color in
                     [z.color for z in zones if
                      z.coords == [cell // 2, row // 2]]][0]
                 amap[row][cell] = f'{c}{zdrones}\x1b[0m' + (f'{c}  ' if zdrones < 10 else '\x1b[90m█') + '\x1b[90m'+'█'*(zone_padding//2)+'\x1b[0m'
-    # for z in zones:
-    #     amap[z.coords[0]][z.coords[1]]
+    for src_coord, conn in [(z.coords, z.get_connections()) for z in zones]:
+        for coord in [connection.dest.coords for connection in conn]:
+            print(f"Connecting {src_coord} and {coord}")
+            breakpoint()
+            delta_x: int = src_coord[0] - coord[0]
+            delta_y: int = src_coord[1] - coord[1]
     return (amap)
 
 
@@ -56,8 +63,8 @@ def render(m: fi.Map) -> None:
     drone: str = '(●)'
     render_width: int = (w := m.dimensions[1] + 1) + (w - 1) + 2
     render_height: int = (h := m.dimensions[0] + 1) + (h - 1) + 2
-    amap: list[list[str]] = render_base(render_width, render_height, 8)
-    amap = render_zones(amap, m.get_zones(), 10)
+    amap: list[list[str]] = render_base(render_width, render_height)
+    amap = render_zones(amap, m.get_zones())
     # print(CLEAR_SCREEN)
     for row in amap:
         for cell in row:
