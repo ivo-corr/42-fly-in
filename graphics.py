@@ -2,7 +2,7 @@ import fly_in as fi
 
 
 def render_base(width: int, height: int) -> list[list[str]]:
-    empty_cell: str = '\x1b[90m\x1b[100m▄▄▄▄\x1b[0m'
+    empty_cell: str = '\x1b[90m██████\x1b[0m'
     amap: list[list[str]] = []
     for r in range(width):
         row: list[str] = []
@@ -13,12 +13,37 @@ def render_base(width: int, height: int) -> list[list[str]]:
 
 
 def render_zones(amap: list[list[str]], zones: list[fi.Map.Zone]) -> None:
-    zone: str = '\x1b[40m\x1b[100m█\x1b[47m3\x1b[90m██\x1b[0m'
+    zone: str = '\x1b[40m\x1b[100m█\x1b[47m{}\x1b[90m██\x1b[0m'
     connectors: list[str] = ["─", "│", "┌", "┐", "└",  "┘"]
+    colors = {
+        'NONE': '',
+        'GREEN': '\x1b[42m',
+        'RED': '\x1b[41m',
+        'BLUE': '\x1b[44m',
+        'ORANGE': '\x1b[48;5;208m',  # 256-color mode (orange is not standard in 4-bit)
+        'YELLOW': '\x1b[43m',
+        'CYAN': '\x1b[46m',
+        'PURPLE': '\x1b[45m',
+        'BROWN': '\x1b[48;5;130m',   # 256-color mode (brown is not standard in 4-bit)
+        'LIME': '\x1b[48;5;10m',      # 256-color mode (lime is not standard in 4-bit)
+        'MAGENTA': '\x1b[45m',        # Same as purple in 4-bit
+        'GOLD': '\x1b[48;5;220m',     # 256-color mode (gold is not standard in 4-bit)
+        'BACKGROUND': '\x1b[90m'
+    }
     for row in [i for i in range(len(amap)) if i % 2 == 1]:
         for cell in [c for c in range(len(amap[0])) if c % 2 == 1]:
             if [cell // 2, row // 2] in [z.coords for z in zones]:
-                amap[row][cell] = zone
+                zdrones = [len(z.drones) for z in zones if z.coords ==
+                           [cell // 2, row // 2]][0]
+                # cell_content = f'\x1b[40m\x1b[100m█\x1b[47m'\
+                #                   f'{zdrones}\x1b[90m' +\
+                #     '██' if (len(str(zdrones)) == 1) else '█' + '\x1b[0m'
+                c = [colors[color.name] for color in
+                     [z.color for z in
+                      zones if z.coords == [cell // 2, row // 2]]][0]
+                amap[row][cell] = f'{c}{zdrones}\x1b[0m' + (f'{c}  ' if zdrones < 10 else '\x1b[90m████') + '\x1b[90m███\x1b[0m'
+    # for z in zones:
+    #     amap[z.coords[0]][z.coords[1]]
     return (amap)
 
 

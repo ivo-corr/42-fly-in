@@ -18,6 +18,11 @@ class Color(Enum):
     ORANGE = auto()
     YELLOW = auto()
     CYAN = auto()
+    PURPLE = auto()
+    BROWN = auto()
+    LIME = auto()
+    MAGENTA = auto()
+    GOLD = auto()
 
 
 class ZoneType(Enum):
@@ -40,13 +45,17 @@ class Map():
                 return f"{self.orig.name} <=> {self.dest.name}"
 
         def __init__(self, name: str, coords: tuple[str, str] | list[str],
-                     color: str = "NONE"):
+                     color: str = "NONE", drones: int = 0):
             self.name: str = name
             self.coords: tuple[int, int] | list[int] = [int(x) for x in coords]
             self.type = ZoneType.NORMAL
             self.color = [
                 c for c in Color if str(c) == "Color." + color.upper()][0]
             self._connections: list[Map.Zone.Connection] = []
+            self.drones: list[str] = []
+            # breakpoint()
+            for dn in range(drones):
+                self.drones.append("D"+str(dn))
 
         def set_connection(self, dest: "Map.Zone"):
             self._connections.append(Map.Zone.Connection(self, dest))
@@ -67,6 +76,7 @@ class Map():
     def __init__(self, pconfig: str):
         self._zones: list[Map.Zone] = []
         self.dimensions: list[int] = [0, 0]
+        self.drones = 0
         delta: int = 0
         '''
         delta denotes the y-axis offset caused by the weird negative index
@@ -76,19 +86,24 @@ class Map():
             meta: list[list[str]] = [
                 [md.lower()] for md in Metadata.__members__ if
                 md.lower() in c[1]]
+            if ("nb_drones" in c[0]):
+                self.drones = int(c[1])
             if ('hub' in c[0]):
                 if int(c[1].split(" ")[1:3][1]) < 0:
                     absolute: int = abs(int(c[1].split(" ")[1:3][1]))
                     if (absolute > delta):
                         for z in self._zones:
                             z.coords = [z.coords[0], z.coords[1] + absolute]
-                    # breakpoint()
-                    self._zones.append(Map.Zone(c[1].split(" ")[0],
+                    self._zones.append(Map.Zone(name := c[1].split(" ")[0],
                                                 tmp := [
-                                                    c[1].split(" ")[1], '0' if absolute > delta else str(delta-absolute)],
+                                                    c[1].split(" ")[1], '0' if
+                                                    absolute > delta else
+                                                    str(delta-absolute)],
                                                 color=[co for co in
                                                 Color.__members__
-                                                if co in c[1].upper()][0]))
+                                                if co in c[1].upper()][0],
+                                                drones=self.drones if name ==
+                                                "start" else 0))
                     delta = absolute if absolute > delta else delta
                 else:
                     if (delta > 0):
@@ -96,12 +111,13 @@ class Map():
                         pass
                     tmp = c[1].split(" ")[1:3]
                     tmp[1] = str(int(tmp[1]) + delta)
-                    self._zones.append(Map.Zone(c[1].split(" ")[0],
+                    self._zones.append(Map.Zone(name := c[1].split(" ")[0],
                                                 tmp,
                                                 color=[co for co in
-                                                       Color.__members__
-                                                       if co in c[1].upper()]
-                                                [0]))
+                                                Color.__members__
+                                                if co in c[1].upper()][0],
+                                                drones=self.drones if name ==
+                                                "start" else 0))
                 if (int(tmp[0]) > self.dimensions[0]):
                     self.dimensions[0] = int(tmp[0])
                 if (int(tmp[1]) > self.dimensions[1]):
@@ -137,7 +153,8 @@ def parse_config(file: str):
 
 def select_map() -> str:
     select: str = ""
-    print("Pick a map")
+    print("\x1b[42m")
+    print("Pick a map\x1b[0m")
     directory = 'maps/'
     directories = [d for d in os.listdir(directory) if
                    os.path.isdir(os.path.join(directory, d))]
@@ -156,21 +173,30 @@ def select_map() -> str:
     # print(directories)
     # print(files)
     input("## ")
-    with open(select) as file:
+    with open('maps/test_map.txt') as file:
         pconfig: str = parse_config(file.read())
     return pconfig
 
 
 if __name__ == "__main__":
     CLEAR_SCREEN: str = '\x1b[2J\x1b[H'
-    select_map()
-    print("## ", end='')
-    cmd = input("")
-    while (cmd != "0"):
-        print(CLEAR_SCREEN)
-        print("## ", end='')
-        cmd = input()
-
+    TITLE: str = '''
+███████╗██╗  ██╗   ██╗       ██╗███╗   ██╗
+██╔════╝██║  ╚██╗ ██╔╝       ██║████╗  ██║
+█████╗  ██║   ╚████╔╝        ██║██╔██╗ ██║
+██╔══╝  ██║    ╚██╔╝         ██║██║╚██╗██║
+██║     ███████╗██║          ██║██║ ╚████║
+╚═╝     ╚══════╝╚═╝          ╚═╝╚═╝  ╚═══╝'''
+    print(TITLE)
+    # select_map()
+    # print("## ", end='')
+    # cmd = input("")
+    # while (cmd != "0"):
+    #     print(CLEAR_SCREEN)
+    #     print("## ", end='')
+    #     cmd = input()
+    with open('maps/easy/02_simple_fork.txt') as file:
+        pconfig: str = parse_config(file.read())
     m: Map = Map(pconfig)
     # [print(z.show(0)) for z in m.get_zones()]
     print(f"Map size: {m.dimensions}")
