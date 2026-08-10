@@ -1,14 +1,22 @@
-from enum import Enum
+from enum import Enum, auto
 import graphics
 
 
+class Metadata(str, Enum):
+    ZONE = "zone"
+    COLOR = "color"
+    MAX_LINK_CAPACITY = "max_link_capacity"
+    MAX_DRONES = "max_drones"
+
+
 class Color(Enum):
-    NONE = 0
-    GREEN = 1
-    RED = 2
-    BLUE = 3
-    ORANGE = 4
-    YELLOW = 5
+    NONE = auto()
+    GREEN = auto()
+    RED = auto()
+    BLUE = auto()
+    ORANGE = auto()
+    YELLOW = auto()
+    CYAN = auto()
 
 
 class ZoneType(Enum):
@@ -64,24 +72,29 @@ class Map():
         notation that was chosen for the map config files
         '''
         for c in pconfig:
-
+            meta: list[list[str]] = [
+                [md.lower()] for md in Metadata.__members__ if
+                md.lower() in c[1]]
             if ('hub' in c[0]):
-                # breakpoint()
                 if int(c[1].split(" ")[1:3][1]) < 0:
-                    # breakpoint()
                     absolute: int = abs(int(c[1].split(" ")[1:3][1]))
-                    for z in self._zones:
-                        z.coords = [z.coords[0], z.coords[1] + absolute]
+                    if (absolute > delta):
+                        for z in self._zones:
+                            z.coords = [z.coords[0], z.coords[1] + absolute]
+                    # breakpoint()
                     self._zones.append(Map.Zone(c[1].split(" ")[0],
-                                                tmp := [c[1].split(" ")[1], 0],
+                                                tmp := [
+                                                    c[1].split(" ")[1], '0' if absolute > delta else str(delta-absolute)],
                                                 color=[co for co in
                                                 Color.__members__
                                                 if co in c[1].upper()][0]))
                     delta = absolute if absolute > delta else delta
                 else:
-                    tmp = c[1].split(" ")[1:3]
                     if (delta > 0):
-                        tmp[1] = str(int(tmp[1]) + delta)
+                        # breakpoint()
+                        pass
+                    tmp = c[1].split(" ")[1:3]
+                    tmp[1] = str(int(tmp[1]) + delta)
                     self._zones.append(Map.Zone(c[1].split(" ")[0],
                                                 tmp,
                                                 color=[co for co in
@@ -122,10 +135,11 @@ def parse_config(file: str):
 
 
 if __name__ == "__main__":
-    with open("maps/hard/03_basic_capacity.txt") as file:
-        pconfig = parse_config(file.read())
+    with open("test_map.txt") as file:
+        pconfig: str = parse_config(file.read())
 
     m: Map = Map(pconfig)
     # [print(z.show(0)) for z in m.get_zones()]
     print(f"Map size: {m.dimensions}")
+    breakpoint()
     graphics.render(m)
