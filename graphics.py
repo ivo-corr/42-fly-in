@@ -1,8 +1,9 @@
 import fly_in as fi
 
 
-def render_base(width: int, height: int) -> list[list[str]]:
-    empty_cell: str = '\x1b[90m██████\x1b[0m'
+def render_base(width: int, height: int,
+                zone_padding: int = 6) -> list[list[str]]:
+    empty_cell: str = '\x1b[90m' + '█'*zone_padding + '\x1b[0m'
     amap: list[list[str]] = []
     for r in range(width):
         row: list[str] = []
@@ -12,7 +13,8 @@ def render_base(width: int, height: int) -> list[list[str]]:
     return (amap)
 
 
-def render_zones(amap: list[list[str]], zones: list[fi.Map.Zone]) -> None:
+def render_zones(amap: list[list[str]], zones: list[fi.Map.Zone],
+                 zone_padding: int = 6) -> None:
     zone: str = '\x1b[40m\x1b[100m█\x1b[47m{}\x1b[90m██\x1b[0m'
     connectors: list[str] = ["─", "│", "┌", "┐", "└",  "┘"]
     colors = {
@@ -20,14 +22,14 @@ def render_zones(amap: list[list[str]], zones: list[fi.Map.Zone]) -> None:
         'GREEN': '\x1b[42m',
         'RED': '\x1b[41m',
         'BLUE': '\x1b[44m',
-        'ORANGE': '\x1b[48;5;208m',  # 256-color mode (orange is not standard in 4-bit)
+        'ORANGE': '\x1b[48;5;208m',
         'YELLOW': '\x1b[43m',
         'CYAN': '\x1b[46m',
         'PURPLE': '\x1b[45m',
-        'BROWN': '\x1b[48;5;130m',   # 256-color mode (brown is not standard in 4-bit)
-        'LIME': '\x1b[48;5;10m',      # 256-color mode (lime is not standard in 4-bit)
-        'MAGENTA': '\x1b[45m',        # Same as purple in 4-bit
-        'GOLD': '\x1b[48;5;220m',     # 256-color mode (gold is not standard in 4-bit)
+        'BROWN': '\x1b[48;5;130m',
+        'LIME': '\x1b[48;5;10m',
+        'MAGENTA': '\x1b[45m',
+        'GOLD': '\x1b[48;5;220m',
         'BACKGROUND': '\x1b[90m'
     }
     for row in [i for i in range(len(amap)) if i % 2 == 1]:
@@ -38,10 +40,11 @@ def render_zones(amap: list[list[str]], zones: list[fi.Map.Zone]) -> None:
                 # cell_content = f'\x1b[40m\x1b[100m█\x1b[47m'\
                 #                   f'{zdrones}\x1b[90m' +\
                 #     '██' if (len(str(zdrones)) == 1) else '█' + '\x1b[0m'
-                c = [colors[color.name] for color in
-                     [z.color for z in
-                      zones if z.coords == [cell // 2, row // 2]]][0]
-                amap[row][cell] = f'{c}{zdrones}\x1b[0m' + (f'{c}  ' if zdrones < 10 else '\x1b[90m████') + '\x1b[90m███\x1b[0m'
+                c = [
+                    colors[color.name] for color in
+                    [z.color for z in zones if
+                     z.coords == [cell // 2, row // 2]]][0]
+                amap[row][cell] = f'{c}{zdrones}\x1b[0m' + (f'{c}  ' if zdrones < 10 else '\x1b[90m█') + '\x1b[90m'+'█'*(zone_padding//2)+'\x1b[0m'
     # for z in zones:
     #     amap[z.coords[0]][z.coords[1]]
     return (amap)
@@ -53,8 +56,8 @@ def render(m: fi.Map) -> None:
     drone: str = '(●)'
     render_width: int = (w := m.dimensions[1] + 1) + (w - 1) + 2
     render_height: int = (h := m.dimensions[0] + 1) + (h - 1) + 2
-    amap: list[list[str]] = render_base(render_width, render_height)
-    amap = render_zones(amap, m.get_zones())
+    amap: list[list[str]] = render_base(render_width, render_height, 8)
+    amap = render_zones(amap, m.get_zones(), 10)
     # print(CLEAR_SCREEN)
     for row in amap:
         for cell in row:
