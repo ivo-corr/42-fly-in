@@ -1,5 +1,6 @@
 from enum import Enum, auto
 import graphics
+import os
 
 
 class Metadata(str, Enum):
@@ -134,12 +135,43 @@ def parse_config(file: str):
     return (result)
 
 
-if __name__ == "__main__":
-    with open("test_map.txt") as file:
+def select_map() -> str:
+    select: str = ""
+    print("Pick a map")
+    directory = 'maps/'
+    directories = [d for d in os.listdir(directory) if
+                   os.path.isdir(os.path.join(directory, d))]
+    files = [f for f in os.listdir(directory) if
+             os.path.isfile(os.path.join(directory, f))]
+    for d in directories:
+        dfiles = [f for f in os.listdir(directory+"/"+d) if
+                  os.path.isfile(os.path.join(directory+"/"+d, f))]
+        print("\t\x1b[34m" + d + "/\x1b[0m")
+        for df in dfiles:
+            print("\t\t\x1b[32m"+df+"\x1b[0m" if df.endswith(".txt") else
+                  "\t\x1b[31m"+df+" (not a text file)\x1b[0m")
+    for f in files:
+        print("\t\x1b[32m"+f+"\x1b[0m" if f.endswith(".txt") else
+              "\t\x1b[31m"+f+" (not a text file)\x1b[0m")
+    # print(directories)
+    # print(files)
+    input("## ")
+    with open(select) as file:
         pconfig: str = parse_config(file.read())
+    return pconfig
+
+
+if __name__ == "__main__":
+    CLEAR_SCREEN: str = '\x1b[2J\x1b[H'
+    select_map()
+    print("## ", end='')
+    cmd = input("")
+    while (cmd != "0"):
+        print(CLEAR_SCREEN)
+        print("## ", end='')
+        cmd = input()
 
     m: Map = Map(pconfig)
     # [print(z.show(0)) for z in m.get_zones()]
     print(f"Map size: {m.dimensions}")
-    breakpoint()
     graphics.render(m)
