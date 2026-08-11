@@ -1,27 +1,38 @@
 import fly_in as fi
 
+class Grid():
+    scaffolding: str = '\x1b[90m' + '█'*horizontal_padding + '\x1b[0m'
+    
+    def __init__(self, height: int, width: int):
 
-def render_base(width: int, height: int,
-                zone_padding: int = 6) -> list[list[str]]:
-    empty_cell: str = '\x1b[90m' + '█'*zone_padding + '\x1b[0m'
+
+
+def render_base(height: int, width: int,
+                horizontal_padding: int = 6,
+                vertical_padding: int = 2) -> list[list[str]]:
+    empty_cell: str = '\x1b[90m' + '█'*horizontal_padding + '\x1b[0m'
     amap: list[list[str]] = []
-    for r in range(width):
+    for r in range(height*(vertical_padding)-(vertical_padding+1)):
         row: list[str] = []
-        for c in range(height):
+        for c in range(width):
             row.append(empty_cell)
         amap.append(row)
     return (amap)
 
 
-def render_zones(amap: list[list[str]], zones: list[fi.Map.Zone],
-                 zone_padding: int = 6) -> None:
+def render_zones(amap: list[list[str]],
+                 zones: list[fi.Map.Zone],
+                 horizontal_padding: int = 6,
+                 vertical_padding: int = 1) -> None:
+    # the mapping from logical map to rendered is 2*x+1
     def is_occupied(x: int, y: int):
-        if amap[x][y] == '\x1b[90m' + '█'*zone_padding + '\x1b[0m':
+        if amap[2*x+1][2*y+1] == '\x1b[90m' +\
+                '█'*horizontal_padding + '\x1b[0m':
             return False
         return True
 
     zone: str = '\x1b[40m\x1b[100m█\x1b[47m{}\x1b[90m██\x1b[0m'
-    connectors: list[str] = ["─", "│", "┌", "┐", "└",  "┘"]
+    connectors: dict[str] = {'horizontal': "─", 'vertical': "│", 'tl_edge': "┌", 'tr_edge': "┐", 'bl_edge': "└",  'br_edge': "┘"}
     colors = {
         'NONE': '',
         'GREEN': '\x1b[42m',
@@ -37,34 +48,57 @@ def render_zones(amap: list[list[str]], zones: list[fi.Map.Zone],
         'GOLD': '\x1b[48;5;220m',
         'BACKGROUND': '\x1b[90m'
     }
-    for row in [i for i in range(len(amap)) if i % 2 == 1]:
+    for row in [i for i in range(len(amap)) if i % (2*vertical_padding) == 1]:
         for cell in [c for c in range(len(amap[0])) if c % 2 == 1]:
-            # (cell // 2, row // 2) is the mapping from the rendered map to the logical map
-            if [cell // 2, row // 2] in [z.coords for z in zones]:
+            # (x,y) where x and y are odd always fall in the logical map
+            # (cell // 2, row // 2) is the mapping from the rendered map to
+            # the logical map
+            if [cell // 2, row // (2*vertical_padding)] in [z.coords for z in
+                                                            zones]:
                 zdrones = [len(z.drones) for z in zones if z.coords ==
-                           [cell // 2, row // 2]][0]
+                           [cell // 2, row // (2*vertical_padding)]][0]
                 c = [
                     colors[color.name] for color in
                     [z.color for z in zones if
-                     z.coords == [cell // 2, row // 2]]][0]
-                amap[row][cell] = f'{c}{zdrones}\x1b[0m' + (f'{c}  ' if zdrones < 10 else '\x1b[90m█') + '\x1b[90m'+'█'*(zone_padding//2)+'\x1b[0m'
-    for src_coord, conn in [(z.coords, z.get_connections()) for z in zones]:
-        for coord in [connection.dest.coords for connection in conn]:
-            print(f"Connecting {src_coord} and {coord}")
-            breakpoint()
-            delta_x: int = src_coord[0] - coord[0]
-            delta_y: int = src_coord[1] - coord[1]
+                     z.coords == [cell // 2, row // (2*vertical_padding)]]][0]
+                amap[row][cell] = f'{c}{zdrones}\x1b[0m' +\
+                    (f'{c}  ' if zdrones < 10 else f'{c} ') +\
+                    '\x1b[90m'+'█' *\
+                    (horizontal_padding//2+4)+'\x1b[0m'
+    breakpoint()
+    for src_coord, coord in [(z.coords, [c.dest.coords for c in z.get_connections()]) for z in zones]:
+        # print(f"Connecting {src_coord} and {coord}")
+        delta_x: int = coord[-1][0] - src_coord[0]
+        delta_y: int = coord[-1][1] - src_coord[1]
+        breakpoint()
+        if abs(delta_y) > 0:
+            pass
+        else:
+            # breakpoint()
+            amap[(2*src_coord[1])+2][2*src_coord[0]+2] = amap[(2*src_coord[1])+2][2*src_coord[0]+2].split("[90m")[0] + '\x1b[0m\x1b[100m' + (connectors['horizontal']*(horizontal_padding+1))
+            amap[(2*src_coord[1])+1][2*src_coord[0]+1+1] = connectors['horizontal'] * 2 * (horizontal_padding - 1)
+            for row in amap:
+                for cell in row:
+                    print(cell, end='')
+                print("")
+            pass
+
+    # breakpoint()
     return (amap)
 
 
-def render(m: fi.Map) -> None:
+def render(m: fi.Map,
+           horizontal_padding: int = 6,
+           vertical_padding: int = 2) -> None:
     CLEAR_SCREEN: str = '\x1b[2J\x1b[H'
     empty_cell: str = '\x1b[90m\x1b[90m▄▄▄▄\x1b[0m'
     drone: str = '(●)'
     render_width: int = (w := m.dimensions[1] + 1) + (w - 1) + 2
     render_height: int = (h := m.dimensions[0] + 1) + (h - 1) + 2
-    amap: list[list[str]] = render_base(render_width, render_height)
-    amap = render_zones(amap, m.get_zones())
+    amap: list[list[str]] = render_base(render_width, render_height,
+                                        horizontal_padding=horizontal_padding,
+                                        vertical_padding=vertical_padding)
+    amap = render_zones(amap, m.get_zones(), vertical_padding=vertical_padding)
     # print(CLEAR_SCREEN)
     for row in amap:
         for cell in row:

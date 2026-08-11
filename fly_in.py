@@ -195,9 +195,9 @@ if __name__ == "__main__":
     #     print(CLEAR_SCREEN)
     #     print("## ", end='')
     #     cmd = input()
-    with open('maps/hard/03_ultimate_challenge.txt') as file:
+    with open('maps/easy/02_simple_fork.txt') as file:
         pconfig: str = parse_config(file.read())
     m: Map = Map(pconfig)
     # [print(z.show(0)) for z in m.get_zones()]
     print(f"Map size: {m.dimensions}")
-    graphics.render(m)
+    graphics.render(m, 10, 2)
