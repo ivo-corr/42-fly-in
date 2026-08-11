@@ -35,8 +35,10 @@ class Grid():
         for r in range(2 + (height + ((height - 1) * vpad))):
             row: list[str] = []
             for c in range(2 + (width + ((width - 1) * hpad))):
-                if ()
-                row.append(self.scaffolding)
+                if not ((r % (vpad + 1) == 1) and (c % (hpad + 1) == 1)):
+                    row.append(self.scaffolding)
+                else:
+                    row.append(" " * self.csize)
             amap.append(row)
         return (amap)
 
@@ -152,6 +154,6 @@ class Grid():
 
 
 if __name__ == "__main__":
-    g: Grid = Grid(1, 1, 2)
+    g: Grid = Grid(10, 10, 5)
     # print(g.ascii_grid)
     g.print_grid()
