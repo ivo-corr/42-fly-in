@@ -1,5 +1,6 @@
 import fly_in as fi
 
+
 class Grid():
     colors = {
         'NONE': '',
@@ -17,7 +18,9 @@ class Grid():
         'BACKGROUND': '\x1b[90m'
     }
 
-    def __init__(self, height: int, width: int, csize: int = 6):
+    def __init__(self, m: fi.Map, csize: int = 6) -> None:
+        self.map: fi.Map = m
+        self.zones: list[fi.Map.Zone] = self.map.get_zones()
         # cell size
         self.csize: int = csize
         # vertical padding: amount of scaffolding between cells vertically
@@ -26,7 +29,7 @@ class Grid():
         self.hpad: int = 1
         self.scaffolding: str = '█' * self.csize
         self.ascii_grid: list[list[str]] = self.base_grid(
-            height, width,
+            self.map.dimensions[1], self.map.dimensions[0],
             self.vpad, self.hpad)
 
     def base_grid(self, height: int, width: int,
@@ -37,16 +40,18 @@ class Grid():
             for c in range(2 + (width + ((width - 1) * hpad))):
                 if not ((r % (vpad + 1) == 1) and (c % (hpad + 1) == 1)):
                     row.append(self.scaffolding)
+                # elif (self.tr((c, r)) in ):
                 else:
                     row.append(" " * self.csize)
             amap.append(row)
         return (amap)
 
-    def tr(self, coords: tuple[int, int], direction: int = 0) -> tuple[int, int]:
+    def tr(self, coords: tuple[int, int],
+           direction: int = 0) -> tuple[int, int]:
         if direction == 0:
             return (coords[0] // (2 * self.hpad), coords[1] // (2 * self.vpad))
 
-    def print_grid(self):
+    def print_grid(self) -> None:
         for row in self.ascii_grid:
             for cell in row:
                 print(cell, end='')
@@ -153,7 +158,7 @@ class Grid():
 #         print("")
 
 
-if __name__ == "__main__":
-    g: Grid = Grid(10, 10, 5)
-    # print(g.ascii_grid)
-    g.print_grid()
+# if __name__ == "__main__":
+#     g: Grid = Grid(10, 10, 5)
+#     # print(g.ascii_grid)
+#     g.print_grid()
