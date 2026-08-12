@@ -18,19 +18,20 @@ class Grid():
         'BACKGROUND': '\x1b[90m'
     }
 
-    def __init__(self, m: fi.Map, csize: int = 6) -> None:
+    def __init__(self, m: fi.Map, csize: int = 6,
+                 vpad: int = 1, hpad: int = 1) -> None:
         self.map: fi.Map = m
         self.zones: list[fi.Map.Zone] = self.map.get_zones()
         # cell size
         self.csize: int = csize
         # vertical padding: amount of scaffolding between cells vertically
-        self.vpad: int = 1
+        self.vpad: int = vpad
         # horizontal padding: amount of scaffolding between cells horizontally
-        self.hpad: int = 1
+        self.hpad: int = hpad
         self.scaffolding: str = '█' * self.csize
         self.ascii_grid: list[list[str]] = self.base_grid(
             self.map.dimensions[1], self.map.dimensions[0],
-            self.vpad, self.hpad)
+            self.vpad, hpad=self.hpad)
 
     def base_grid(self, height: int, width: int,
                   vpad: int = 1, hpad: int = 1) -> list[list[str]]:
@@ -40,16 +41,17 @@ class Grid():
             for c in range(2 + (width + ((width - 1) * hpad))):
                 if not ((r % (vpad + 1) == 1) and (c % (hpad + 1) == 1)):
                     row.append(self.scaffolding)
-                # elif (self.tr((c, r)) in ):
-                else:
+                elif (self.tr([c, r]) in [z.coords for z in self.map.get_zones()]):
                     row.append(" " * self.csize)
+                else:
+                    row.append(self.scaffolding)
             amap.append(row)
         return (amap)
 
-    def tr(self, coords: tuple[int, int],
-           direction: int = 0) -> tuple[int, int]:
+    def tr(self, coords: list[int],
+           direction: int = 0) -> list[int]:
         if direction == 0:
-            return (coords[0] // (2 * self.hpad), coords[1] // (2 * self.vpad))
+            return [coords[0] // (2 * self.hpad), coords[1] // (2 * self.vpad)]
 
     def print_grid(self) -> None:
         for row in self.ascii_grid:
