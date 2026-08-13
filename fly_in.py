@@ -200,5 +200,5 @@ if __name__ == "__main__":
     m: Map = Map(pconfig)
     # [print(z.show(0)) for z in m.get_zones()]
     print(f"Map size: {m.dimensions}")
-    g: graphics.Grid = graphics.Grid(m, 3)
+    g: graphics.Grid = graphics.Grid(m, 3, vpad=5, hpad=3)
     g.print_grid()

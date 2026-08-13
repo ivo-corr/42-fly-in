@@ -39,6 +39,7 @@ class Grid():
         for r in range(2 + (height + ((height - 1) * vpad))):
             row: list[str] = []
             for c in range(2 + (width + ((width - 1) * hpad))):
+                # breakpoint()
                 if not ((r % (vpad + 1) == 1) and (c % (hpad + 1) == 1)):
                     row.append(self.scaffolding)
                 elif (self.tr([c, r]) in [z.coords for z in self.map.get_zones()]):
@@ -50,8 +51,12 @@ class Grid():
 
     def tr(self, coords: list[int],
            direction: int = 0) -> list[int]:
+        '''
+        Transform function takes grid coordinates and translates
+        them to logical coordinates
+        '''
         if direction == 0:
-            return [coords[0] // (2 * self.hpad), coords[1] // (2 * self.vpad)]
+            return [coords[0] // (self.hpad + 1), coords[1] // (self.vpad + 1)]
 
     def print_grid(self) -> None:
         for row in self.ascii_grid:
