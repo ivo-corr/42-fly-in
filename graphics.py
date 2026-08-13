@@ -77,17 +77,21 @@ class Grid():
         return (amap)
 
     @staticmethod
-    def get_conn_coords(c: fi.Map.Zone.Connection):
-        pass
+    def get_conn_coords(grid: "Grid", c: fi.Map.Zone.Connection):
+        src_coord: list[int] = c.orig.coords
+        dest_coord: list[int] = c.dest.coords
 
     def tr(self, coords: list[int],
            direction: int = 0) -> list[int]:
         '''
         Transform function takes grid coordinates and translates
-        them to logical coordinates
+        them to logical coordinates when direction is 0, and the converse
+        if direction is 1
         '''
         if direction == 0:
             return [coords[0] // (self.hpad + 1), coords[1] // (self.vpad + 1)]
+        if direction == 1:
+            return []
 
     def print_grid(self) -> None:
         for row in self.ascii_grid:
