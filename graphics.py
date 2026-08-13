@@ -22,6 +22,18 @@ class Grid():
                  vpad: int = 1, hpad: int = 1) -> None:
         self.map: fi.Map = m
         self.zones: list[fi.Map.Zone] = self.map.get_zones()
+        # we unpack all connections in a flat list
+        self.connections: list[fi.Map.Zone.Connection] = [
+            element for sublist in [ee for ee in [
+                c for c in [z.get_connections() for z in self.zones]
+                ]] for element in sublist]
+        # we select only the connections that need to be rendered
+        self.connections = list(
+            filter(lambda x: x.dest.coords[0] > x.orig.coords[0],
+                   self.connections))
+        # we translate each connection to a set of coordinates
+        self.conn_coordinates: list[list[list[int]]] = list(
+            map(lambda x: Grid.get_conn_coords(x), self.connections))
         # cell size
         self.csize: int = csize
         # vertical padding: amount of scaffolding between cells vertically
@@ -36,18 +48,37 @@ class Grid():
     def base_grid(self, height: int, width: int,
                   vpad: int = 1, hpad: int = 1) -> list[list[str]]:
         amap: list[list[str]] = []
+        conns: list[fi.Map.Zone.Connection] = []
+        for c in self.connections:
+            print(f"Connecting {c.orig.coords} and {c.dest.coords}")
+            c1: list[int] = c.orig.coords
+            c2: list[int] = c.dest.coords
+            delta_x: int = c2[0] - c1[0]
+            delta_y: int = c2[1] - c1[1]
+            # this connection is horizontal so it will be rendered first
+            if (delta_y == 0):
+                print("The connection is horizontal")
+                    
         for r in range(2 + (height + ((height - 1) * vpad))):
             row: list[str] = []
             for c in range(2 + (width + ((width - 1) * hpad))):
                 # breakpoint()
                 if not ((r % (vpad + 1) == 1) and (c % (hpad + 1) == 1)):
                     row.append(self.scaffolding)
-                elif (self.tr([c, r]) in [z.coords for z in self.map.get_zones()]):
+                elif (self.tr([c, r]) in
+                      [z.coords for z in self.map.get_zones()]):
                     row.append(" " * self.csize)
                 else:
-                    row.append(self.scaffolding)
+                    # check if this is part of a connection line
+                    if (True):
+                        row.append(self.scaffolding)
             amap.append(row)
+
         return (amap)
+
+    @staticmethod
+    def get_conn_coords(c: fi.Map.Zone.Connection):
+        pass
 
     def tr(self, coords: list[int],
            direction: int = 0) -> list[int]:

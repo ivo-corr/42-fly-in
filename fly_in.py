@@ -41,6 +41,12 @@ class Map():
                 self.dest = dest
                 self.capacity = max_capacity
 
+            def is_converse(self, c: "Map.Zone.Connection") -> bool:
+                if type(c) is not list:
+                    return True if self.orig == c.dest and\
+                        self.dest == c.orig and\
+                        self.capacity == c.capacity else False
+
             def show(self):
                 return f"{self.orig.name} <=> {self.dest.name}"
 
@@ -202,3 +208,4 @@ if __name__ == "__main__":
     print(f"Map size: {m.dimensions}")
     g: graphics.Grid = graphics.Grid(m, 3, vpad=5, hpad=3)
     g.print_grid()
+    breakpoint()
