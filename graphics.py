@@ -1,6 +1,13 @@
 import fly_in as fi
 
 
+def pr_grid(grid: list[list[str]]):
+    for row in grid:
+        for column in row:
+            print(column, end='')
+        print()
+
+
 class Grid():
     colors = {
         'NONE': '',
@@ -54,6 +61,25 @@ class Grid():
 
     def base_grid(self, height: int, width: int,
                   vpad: int = 1, hpad: int = 1) -> list[list[str]]:
+        def connect(map: list[list[str]],conn: list[list[int]]) -> bool:
+            delta_x: int = conn[1][0] - conn[0][0]
+            delta_y: int = conn[1][1] - conn[0][1]
+            # end of recursion
+            if (delta_x == 1 and delta_y == 0):
+                return True
+            if (abs(delta_y) <= abs(delta_x)) and delta_y != 0:
+                pass
+                # map[conn[0][1] + ((1) if (delta_y > 0) else (-1))][conn[0][0]] = connectors[
+                #         'vertical']
+                # return connect(map, [[conn[0][0], conn[0][1] + ((1) if (delta_y > 0) else (-1))], conn[1]])
+            else:
+                breakpoint()
+                map[conn[0][1]][conn[0][0] + 1] = connectors[
+                    'horizontal'] * self.csize
+                return connect(map, [[conn[0][0] + 1, conn[0][1]], conn[1]])
+            
+            
+
         amap: list[list[str]] = []
         connectors: dict[str] = {'horizontal': f"{self.colors['BG_BG']}─"
                                  f"{self.colors['END']}",
@@ -92,17 +118,20 @@ class Grid():
                     0]
             self.raw_connections.append([origin, destination])
         for c in self.raw_connections:
-            print(f"Connecting {c[0]} and {c[1]}")
-            delta_x: int = abs(c[0][0] - c[1][0])
-            delta_y: int = abs(c[0][1] - c[1][1])
-            # this connection is horizontal so it will be rendered first
-            if (delta_y == 0):
-                print("The connection is horizontal")
-                print(delta_x)
-                breakpoint()
-                for cell in range(delta_x - 1):
-                    amap[c[0][1]][c[0][0] + cell + 1] = connectors[
-                        'horizontal'] * self.csize
+            breakpoint()
+            connect(amap, c)
+            # print(f"Connecting {c[0]} and {c[1]}")
+            # delta_x: int = abs(c[0][0] - c[1][0])
+            # delta_y: int = abs(c[0][1] - c[1][1])
+            # # this connection is horizontal so it will be rendered first
+            # if (delta_y == 0):
+            #     print("The connection is horizontal")
+            #     print(delta_x)
+            #     for cell in range(delta_x - 1):
+            #         amap[c[0][1]][c[0][0] + cell + 1] = connectors[
+            #             'horizontal'] * self.csize
+            # else:
+            #     pass
         return (amap)
 
     @staticmethod
