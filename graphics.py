@@ -46,7 +46,8 @@ class Grid():
         # horizontal padding: amount of scaffolding between cells horizontally
         self.hpad: int = hpad
         self.bg_color: str = self.colors['BACKGROUND']
-        self.scaffolding: str = f'{self.bg_color}█' * self.csize
+        self.scaffolding: str = f'{self.bg_color}█' * self.csize +\
+            self.colors['END']
         self.ascii_grid: list[list[str]] = self.base_grid(
             self.map.dimensions[1], self.map.dimensions[0],
             self.vpad, hpad=self.hpad)
@@ -66,7 +67,6 @@ class Grid():
                                  f"{self.colors['END']}",
                                  'br_edge': f"{self.colors['BG_BG']}┘"
                                  f"{self.colors['END']}"}
-        conns: list[fi.Map.Zone.Connection] = []
         for r in range(2 + (height + ((height - 1) * vpad))):
             row: list[str] = []
             for c in range(2 + (width + ((width - 1) * hpad))):
@@ -85,9 +85,11 @@ class Grid():
             amap.append(row)
         for c in self.connections:
             origin = list(
-                filter(lambda x: self.tr(x) == c.orig.coords, self.raw_zones))[0]
+                filter(lambda x: self.tr(x) == c.orig.coords, self.raw_zones))[
+                    0]
             destination = list(
-                filter(lambda x: self.tr(x) == c.dest.coords, self.raw_zones))[0]
+                filter(lambda x: self.tr(x) == c.dest.coords, self.raw_zones))[
+                    0]
             self.raw_connections.append([origin, destination])
         for c in self.raw_connections:
             print(f"Connecting {c[0]} and {c[1]}")
@@ -97,6 +99,7 @@ class Grid():
             if (delta_y == 0):
                 print("The connection is horizontal")
                 print(delta_x)
+                breakpoint()
                 for cell in range(delta_x - 1):
                     amap[c[0][1]][c[0][0] + cell + 1] = connectors[
                         'horizontal'] * self.csize
