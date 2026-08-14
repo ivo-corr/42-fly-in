@@ -201,11 +201,10 @@ if __name__ == "__main__":
     #     print(CLEAR_SCREEN)
     #     print("## ", end='')
     #     cmd = input()
-    with open('maps/easy/02_simple_fork.txt') as file:
+    with open('maps/easy/01_linear_path.txt') as file:
         pconfig: str = parse_config(file.read())
     m: Map = Map(pconfig)
     # [print(z.show(0)) for z in m.get_zones()]
     print(f"Map size: {m.dimensions}")
-    g: graphics.Grid = graphics.Grid(m, 3, vpad=5, hpad=3)
+    g: graphics.Grid = graphics.Grid(m, 3, vpad=5, hpad=1)
     g.print_grid()
-    breakpoint()

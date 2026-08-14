@@ -15,7 +15,9 @@ class Grid():
         'LIME': '\x1b[48;5;10m',
         'MAGENTA': '\x1b[45m',
         'GOLD': '\x1b[48;5;220m',
-        'BACKGROUND': '\x1b[90m'
+        'BACKGROUND': (bg := '\x1b[90m'),
+        'BG_BG': '\x1b[' + str(int(bg.split("[")[1][:-1]) + 10) + 'm',
+        'END': '\x1b[0m'
     }
 
     def __init__(self, m: fi.Map, csize: int = 6,
@@ -31,16 +33,20 @@ class Grid():
         self.connections = list(
             filter(lambda x: x.dest.coords[0] > x.orig.coords[0],
                    self.connections))
+        self.raw_zones: list[list[int]] = []
+        self.raw_connections: list[list[list[int]]] = []
         # we translate each connection to a set of coordinates
         self.conn_coordinates: list[list[list[int]]] = list(
-            map(lambda x: Grid.get_conn_coords(x), self.connections))
+            map(lambda x: Grid.get_conn_coords(x),
+                self.raw_connections))
         # cell size
         self.csize: int = csize
         # vertical padding: amount of scaffolding between cells vertically
         self.vpad: int = vpad
         # horizontal padding: amount of scaffolding between cells horizontally
         self.hpad: int = hpad
-        self.scaffolding: str = '█' * self.csize
+        self.bg_color: str = self.colors['BACKGROUND']
+        self.scaffolding: str = f'{self.bg_color}█' * self.csize
         self.ascii_grid: list[list[str]] = self.base_grid(
             self.map.dimensions[1], self.map.dimensions[0],
             self.vpad, hpad=self.hpad)
@@ -48,17 +54,19 @@ class Grid():
     def base_grid(self, height: int, width: int,
                   vpad: int = 1, hpad: int = 1) -> list[list[str]]:
         amap: list[list[str]] = []
+        connectors: dict[str] = {'horizontal': f"{self.colors['BG_BG']}─"
+                                 f"{self.colors['END']}",
+                                 'vertical':  f"{self.colors['BG_BG']}│"
+                                 f"{self.colors['END']}",
+                                 'tl_edge': f"{self.colors['BG_BG']}┌"
+                                 f"{self.colors['END']}",
+                                 'tr_edge': f"{self.colors['BG_BG']}┐"
+                                 f"{self.colors['END']}",
+                                 'bl_edge': f"{self.colors['BG_BG']}└"
+                                 f"{self.colors['END']}",
+                                 'br_edge': f"{self.colors['BG_BG']}┘"
+                                 f"{self.colors['END']}"}
         conns: list[fi.Map.Zone.Connection] = []
-        for c in self.connections:
-            print(f"Connecting {c.orig.coords} and {c.dest.coords}")
-            c1: list[int] = c.orig.coords
-            c2: list[int] = c.dest.coords
-            delta_x: int = c2[0] - c1[0]
-            delta_y: int = c2[1] - c1[1]
-            # this connection is horizontal so it will be rendered first
-            if (delta_y == 0):
-                print("The connection is horizontal")
-                    
         for r in range(2 + (height + ((height - 1) * vpad))):
             row: list[str] = []
             for c in range(2 + (width + ((width - 1) * hpad))):
@@ -68,18 +76,37 @@ class Grid():
                 elif (self.tr([c, r]) in
                       [z.coords for z in self.map.get_zones()]):
                     row.append(" " * self.csize)
+                    self.raw_zones.append([c, r])
+                    # print(f"{[self.tr([c,r])]} correlates to {[c,r]} ")
                 else:
                     # check if this is part of a connection line
                     if (True):
                         row.append(self.scaffolding)
             amap.append(row)
-
+        for c in self.connections:
+            origin = list(
+                filter(lambda x: self.tr(x) == c.orig.coords, self.raw_zones))[0]
+            destination = list(
+                filter(lambda x: self.tr(x) == c.dest.coords, self.raw_zones))[0]
+            self.raw_connections.append([origin, destination])
+        for c in self.raw_connections:
+            print(f"Connecting {c[0]} and {c[1]}")
+            delta_x: int = abs(c[0][0] - c[1][0])
+            delta_y: int = abs(c[0][1] - c[1][1])
+            # this connection is horizontal so it will be rendered first
+            if (delta_y == 0):
+                print("The connection is horizontal")
+                print(delta_x)
+                for cell in range(delta_x - 1):
+                    amap[c[0][1]][c[0][0] + cell + 1] = connectors[
+                        'horizontal'] * self.csize
         return (amap)
 
     @staticmethod
-    def get_conn_coords(grid: "Grid", c: fi.Map.Zone.Connection):
+    def get_conn_coords(grid: "Grid", c: fi.Map.Zone.Connection) -> list[list[int]]:
         src_coord: list[int] = c.orig.coords
         dest_coord: list[int] = c.dest.coords
+        return [src_coord, dest_coord]
 
     def tr(self, coords: list[int],
            direction: int = 0) -> list[int]:
@@ -87,6 +114,8 @@ class Grid():
         Transform function takes grid coordinates and translates
         them to logical coordinates when direction is 0, and the converse
         if direction is 1
+        note: since the function is many-to-one in one direction there is no
+        unique inverse
         '''
         if direction == 0:
             return [coords[0] // (self.hpad + 1), coords[1] // (self.vpad + 1)]
