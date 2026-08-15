@@ -201,7 +201,7 @@ if __name__ == "__main__":
     #     print(CLEAR_SCREEN)
     #     print("## ", end='')
     #     cmd = input()
-    with open('maps/easy/01_linear_path.txt') as file:
+    with open('maps/easy/02_simple_fork.txt') as file:
         pconfig: str = parse_config(file.read())
     m: Map = Map(pconfig)
     # [print(z.show(0)) for z in m.get_zones()]

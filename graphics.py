@@ -52,6 +52,8 @@ class Grid():
         self.vpad: int = vpad
         # horizontal padding: amount of scaffolding between cells horizontally
         self.hpad: int = hpad
+        # horizontal median for symmetric connection rendering
+        self.hmedian: int = (self.map.dimensions[1]//2) + 1 + self.vpad
         self.bg_color: str = self.colors['BACKGROUND']
         self.scaffolding: str = f'{self.bg_color}█' * self.csize +\
             self.colors['END']
@@ -61,19 +63,34 @@ class Grid():
 
     def base_grid(self, height: int, width: int,
                   vpad: int = 1, hpad: int = 1) -> list[list[str]]:
-        def connect(map: list[list[str]],conn: list[list[int]]) -> bool:
+        def connect(map: list[list[str]], conn: list[list[int]]) -> bool:
             delta_x: int = conn[1][0] - conn[0][0]
             delta_y: int = conn[1][1] - conn[0][1]
             # end of recursion
             if (delta_x == 1 and delta_y == 0):
                 return True
-            if (abs(delta_y) <= abs(delta_x)) and delta_y != 0:
-                pass
+            if delta_y != 0:
+                # breakpoint()
+                if (abs(conn[0][1] - self.hmedian) <
+                        abs(conn[1][1] - self.hmedian)):
+                    print("Origin is closer to median than destination")
+                    map[conn[0][1] + (1 if delta_y > 0 else -1)][conn[0][0]] =\
+                        (f'{self.colors["BG_BG"]} ' * (self.csize//2)) +\
+                        ((connectors['vertical'] + f'{self.colors["BG_BG"]} ')
+                         if abs(delta_y) > 1 else
+                         ((connectors['bl_edge'] if delta_y > 0 else
+                           connectors['tl_edge'])
+                          + f'{self.colors["BG_BG"]
+                               + connectors['horizontal']}') * (self.csize//2))
+                    return connect(
+                        map,
+                        [[conn[0][0], conn[0][1] + (1 if delta_y > 0 else -1)],
+                         conn[1]])
                 # map[conn[0][1] + ((1) if (delta_y > 0) else (-1))][conn[0][0]] = connectors[
                 #         'vertical']
                 # return connect(map, [[conn[0][0], conn[0][1] + ((1) if (delta_y > 0) else (-1))], conn[1]])
-            else:
-                breakpoint()
+            elif (delta_y == 0):
+                # breakpoint()
                 map[conn[0][1]][conn[0][0] + 1] = connectors[
                     'horizontal'] * self.csize
                 return connect(map, [[conn[0][0] + 1, conn[0][1]], conn[1]])
@@ -118,7 +135,6 @@ class Grid():
                     0]
             self.raw_connections.append([origin, destination])
         for c in self.raw_connections:
-            breakpoint()
             connect(amap, c)
             # print(f"Connecting {c[0]} and {c[1]}")
             # delta_x: int = abs(c[0][0] - c[1][0])
