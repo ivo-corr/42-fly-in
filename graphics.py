@@ -67,10 +67,11 @@ class Grid():
             delta_x: int = conn[1][0] - conn[0][0]
             delta_y: int = conn[1][1] - conn[0][1]
             # end of recursion
-            if (delta_x == 1 and delta_y == 0):
+            if (delta_x == 1 and (delta_y == 0 or abs(delta_y) == 1)):
                 return True
             if delta_y != 0:
                 # breakpoint()
+                # first case: origin is closer to median than destination
                 if (abs(conn[0][1] - self.hmedian) <
                         abs(conn[1][1] - self.hmedian)):
                     print("Origin is closer to median than destination")
@@ -86,10 +87,27 @@ class Grid():
                         map,
                         [[conn[0][0], conn[0][1] + (1 if delta_y > 0 else -1)],
                          conn[1]])
-                # map[conn[0][1] + ((1) if (delta_y > 0) else (-1))][conn[0][0]] = connectors[
-                #         'vertical']
-                # return connect(map, [[conn[0][0], conn[0][1] + ((1) if (delta_y > 0) else (-1))], conn[1]])
-            elif (delta_y == 0):
+                # destination is closer to median that origin
+                else:
+                    breakpoint()
+                    # x coord aligned
+                    if (conn[0][0] == conn[1][0] and delta_y != 0):
+                        map[conn[0][1]][conn[0][0]] =\
+                            (f'{self.colors["BG_BG"]} ' * (self.csize//2)) +\
+                            ((connectors['vertical'] + f'{self.colors["BG_BG"]} '))
+                        return connect(
+                            map,
+                            [[conn[0][0], conn[0][1] + (1 if delta_y > 0 else -1)], conn[1]]
+                        )
+                    # x coord not aligned
+                    else:
+                        map[conn[0][1]][conn[0][0] + 1] =\
+                            f'{connectors['horizontal']}' * self.csize
+                        return connect(
+                            map,
+                            [[conn[0][0] + 1, conn[0][1]], conn[1]]
+                        )
+            elif (delta_y == 0 and delta_x != 0):
                 # breakpoint()
                 map[conn[0][1]][conn[0][0] + 1] = connectors[
                     'horizontal'] * self.csize
