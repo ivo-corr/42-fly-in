@@ -242,7 +242,9 @@ def next_turn(m: Map) -> int:
         return move_count
     for z in m.get_zones(only_occupied=True):
         for d in z.drones:
-            m.move(z, z.possible_moves()[0], d)
+            next_forward: Map.Zone = [next for next in z.possible_moves() if next.coords[0] > z.coords[0]]
+            if len(next_forward) > 0:
+                m.move(z, next_forward[0], d)
             move_count += 1
     return move_count
 
@@ -277,16 +279,16 @@ if __name__ == "__main__":
         # print(m.show())
         hub = m.get_zone('start')
         # print(hub.get_connections()[0])
-        print(hub.get_connections())
-        m.move(hub, m.get_zone("junction"), 'D1')
-        m.move(m.get_zone("junction"), hub, 'D1')
         print(m.get_zone("junction").show())
         turn: int = 0
+        print(f"==== Turn {turn} ====")
+        turn += 1
         while (mvs := next_turn(m)):
             print(f"==== Turn {turn} ====")
             print(f"Zones with drones in turn: {[z.name for z in m.get_zones(only_occupied=True)]}")
             print(f"Number of moves in this turn: {mvs}")
             next_turn(m)
+            turn += 1
 
     except Exception as e:
         print(e)
