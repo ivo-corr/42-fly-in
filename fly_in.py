@@ -178,8 +178,10 @@ class Map():
             \t\t'{d}' is in {z1.name}
             \t\tThere is a connection from '{z1.name}' to '{z2.name}'\x1b\n[0m''')
 
-    def get_zones(self) -> list["Map.Zone"]:
-        return self._zones
+    def get_zones(self, only_occupied: bool = False) -> list["Map.Zone"]:
+        if not only_occupied:
+            return self._zones
+        return [z for z in self.get_zones() if len(z.drones) > 0]
 
     def get_zone(self, name: str) -> "Map.Zone":
         found_zone = [z for z in self.get_zones() if z.name == name.lower()]
@@ -229,6 +231,22 @@ def select_map() -> str:
     return pconfig
 
 
+def next_turn(m: Map) -> int:
+    '''
+    next_turn runs the next simulation turn
+    returns True when all drones reached goal
+    False otherwise
+    '''
+    move_count: int = 0
+    if len(m.get_zone("goal").drones) == m.drones:
+        return move_count
+    for z in m.get_zones(only_occupied=True):
+        for d in z.drones:
+            m.move(z, z.possible_moves()[0], d)
+            move_count += 1
+    return move_count
+
+
 if __name__ == "__main__":
     CLEAR_SCREEN: str = '\x1b[2J\x1b[H'
     TITLE: str = '''
@@ -263,6 +281,12 @@ if __name__ == "__main__":
         m.move(hub, m.get_zone("junction"), 'D1')
         m.move(m.get_zone("junction"), hub, 'D1')
         print(m.get_zone("junction").show())
-        print([move.name for move in hub.possible_moves()])
+        turn: int = 0
+        while (mvs := next_turn(m)):
+            print(f"==== Turn {turn} ====")
+            print(f"Zones with drones in turn: {[z.name for z in m.get_zones(only_occupied=True)]}")
+            print(f"Number of moves in this turn: {mvs}")
+            next_turn(m)
+
     except Exception as e:
         print(e)
