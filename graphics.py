@@ -81,8 +81,7 @@ class Grid():
                          if abs(delta_y) > 1 else
                          ((connectors['bl_edge'] if delta_y > 0 else
                            connectors['tl_edge'])
-                          + f'{self.colors["BG_BG"]
-                               + connectors['horizontal']}') * (self.csize//2))
+                          + f'{self.colors["BG_BG"] + connectors["horizontal"]}') * (self.csize//2))
                     return connect(
                         map,
                         [[conn[0][0], conn[0][1] + (1 if delta_y > 0 else -1)],
@@ -91,17 +90,22 @@ class Grid():
                 else:
                     # x coord aligned
                     if (conn[0][0] == conn[1][0] and delta_y != 0):
-                        map[conn[0][1]][conn[0][0]] =\
+                        map[conn[0][1] + (1 if delta_y < 0 else (-1))][conn[0][0]] =\
                             (f'{self.colors["BG_BG"]} ' * (self.csize//2)) +\
-                            ((connectors['vertical'] + f'{self.colors["BG_BG"]} '))
+                            ((connectors['vertical'] + f'{self.colors["BG_BG"]} ' * (self.csize//2)))
                         return connect(
                             map,
                             [[conn[0][0], conn[0][1] + (1 if delta_y > 0 else -1)], conn[1]]
                         )
                     # x coord not aligned
                     else:
+                        breakpoint()
                         map[conn[0][1]][conn[0][0] + 1] =\
-                            f'{connectors['horizontal']}' * self.csize
+                            connectors["horizontal"] * self.csize if\
+                            delta_x > 1 else\
+                            (connectors['horizontal'] * (self.csize//2)) + (
+                                connectors["br_edge"] if delta_y < 0 else
+                                connectors["tr_edge"]) + (f'{self.colors["BG_BG"]} ' * (self.csize//2))
                         return connect(
                             map,
                             [[conn[0][0] + 1, conn[0][1]], conn[1]]
