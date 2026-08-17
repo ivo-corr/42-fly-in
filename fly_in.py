@@ -39,7 +39,13 @@ class Map():
                          max_capacity: int = -1):
                 self.orig = orig
                 self.dest = dest
+                self.drones: list["str"] = []
                 self.capacity = max_capacity
+
+            def available(self) -> bool:
+                if self.capacity == -1 or len(self.drones) < self.capacity:
+                    return True
+                return False
 
             def is_converse(self, c: "Map.Zone.Connection") -> bool:
                 if type(c) is not list:
@@ -51,7 +57,7 @@ class Map():
                 return f"{self.orig.name} <=> {self.dest.name}"
 
         def __init__(self, name: str, coords: tuple[str, str] | list[str],
-                     color: str = "NONE", drones: int = 0):
+                     color: str = "NONE", capacity: int = -1, drones: int = 0):
             self.name: str = name
             self.coords: tuple[int, int] | list[int] = [int(x) for x in coords]
             self.type = ZoneType.NORMAL
@@ -59,7 +65,7 @@ class Map():
                 c for c in Color if str(c) == "Color." + color.upper()][0]
             self._connections: list[Map.Zone.Connection] = []
             self.drones: list[str] = []
-            # breakpoint()
+            self.capacity: int = capacity
             for dn in range(drones):
                 self.drones.append("D"+str(dn))
 
@@ -69,8 +75,17 @@ class Map():
         def get_connections(self) -> list["Map.Zone.Connection"]:
             return (self._connections)
 
+        def available(self) -> bool:
+            if (self.capacity == -1 or
+                len(self.drones) < self.capacity):
+                return True
+            return False
+
         def possible_moves(self) -> list["Map.Zone"]:
-            pass
+            available: list["Map.Zone"] = []
+            [available.append(c.dest) for c in self.get_connections() if
+             c.dest.available() and c.available()]
+            return available
 
         def show(self, mode: int = 0):
             if mode == 0:
@@ -222,8 +237,10 @@ if __name__ == "__main__":
 █████╗  ██║   ╚████╔╝        ██║██╔██╗ ██║
 ██╔══╝  ██║    ╚██╔╝         ██║██║╚██╗██║
 ██║     ███████╗██║          ██║██║ ╚████║
-╚═╝     ╚══════╝╚═╝          ╚═╝╚═╝  ╚═══╝'''
-    print(TITLE)
+╚═╝     ╚══════╝╚═╝          ╚═╝╚═╝  ╚═══╝
+'''
+
+    print('\x1b[94m'+TITLE+'\x1b[0m')
     # select_map()
     # print("## ", end='')
     # cmd = input("")
@@ -246,5 +263,6 @@ if __name__ == "__main__":
         m.move(hub, m.get_zone("junction"), 'D1')
         m.move(m.get_zone("junction"), hub, 'D1')
         print(m.get_zone("junction").show())
+        print([move.name for move in hub.possible_moves()])
     except Exception as e:
         print(e)
