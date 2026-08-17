@@ -89,7 +89,6 @@ class Grid():
                          conn[1]])
                 # destination is closer to median that origin
                 else:
-                    breakpoint()
                     # x coord aligned
                     if (conn[0][0] == conn[1][0] and delta_y != 0):
                         map[conn[0][1]][conn[0][0]] =\
