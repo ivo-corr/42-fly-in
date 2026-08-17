@@ -69,13 +69,14 @@ class Map():
         def get_connections(self):
             return (self._connections)
 
-        def show(self, mode: int = 1):
+        def show(self, mode: int = 0):
             if mode == 0:
                 return f"""{self.name}:
     Coordinates: {self.coords}
-    Type: {self.type}
-    Color: {self.color}
-    Connections: {[c.show() for c in self._connections]}"""
+    Type: {self.type.name}
+    Drones: \n\t{"\n\t".join([d for d in self.drones])}
+    Connections: \n\t{"\n\t".join([c.show() for c in self._connections])}
+    Color: {self.color.name}"""
             else:
                 pass
 
@@ -143,9 +144,33 @@ class Map():
             if (int(z.coords[1]) + 1 > self.dimensions[1]):
                 self.dimensions[1] = int(z.coords[1]) + 1
 
-    def get_zones(self):
+    def move(self, z1: "Map.Zone", z2: "Map.Zone", d: str):
+        if (z1 in self.get_zones() and
+            z2 in self.get_zones() and
+            d in z2.drones and
+                z2.name in [c.dest.name for c in z1.get_connections()]):
+            z1.drones.remove(d)
+            z2.drones.append(d)
+            print(f"Moved {d} from {z1.name} to {z2.name}")
+        else:
+            print("\x1b[41m\nOne of the following is not true:")
+            print(f"\tBoth zones are in the map")
+            print(f"\t{d} is in {z1.name}")
+            print(f"\tThere is a connection from {z1.name} to {z2.name}\x1b[0m")
+
+    def get_zones(self) -> list["Map.Zone"]:
         return self._zones
 
+    def get_zone(self, name: str) -> "Map.Zone":
+        found_zone = [z for z in self.get_zones() if z.name == name.lower()]
+        if len(found_zone) == 1:
+            return found_zone[0]
+        return None
+    
+    def show(self):
+        return f'''
+Zones: {[z.name for z in self.get_zones()]}
+        '''
 
 def parse_config(file: str):
     result: list[list[str] | list[list[list[str]]]] = []
@@ -208,3 +233,10 @@ if __name__ == "__main__":
     print(f"Map size: {m.dimensions}")
     g: graphics.Grid = graphics.Grid(m, 3, vpad=5, hpad=4)
     g.print_grid()
+    # print(m.show())
+    hub = m.get_zone('start')
+    # print(hub.get_connections()[0])
+    print(hub.show())
+    m.move(hub, m.get_zone("goal"), 'D0')
+    m.get_zone("goal")
+    print(m.get_zone("goal").show())

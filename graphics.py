@@ -99,7 +99,6 @@ class Grid():
                         )
                     # x coord not aligned
                     else:
-                        breakpoint()
                         map[conn[0][1]][conn[0][0] + 1] =\
                             connectors["horizontal"] * self.csize if\
                             delta_x > 1 else\
