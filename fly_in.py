@@ -66,17 +66,20 @@ class Map():
         def set_connection(self, dest: "Map.Zone"):
             self._connections.append(Map.Zone.Connection(self, dest))
 
-        def get_connections(self):
+        def get_connections(self) -> list["Map.Zone.Connection"]:
             return (self._connections)
+
+        def possible_moves(self) -> list["Map.Zone"]:
+            pass
 
         def show(self, mode: int = 0):
             if mode == 0:
-                return f"""{self.name}:
-    Coordinates: {self.coords}
-    Type: {self.type.name}
-    Drones: \n\t{"\n\t".join([d for d in self.drones])}
-    Connections: \n\t{"\n\t".join([c.show() for c in self._connections])}
-    Color: {self.color.name}"""
+                return f"""\x1b[46m\n\n\t{self.name}:
+    \t\tCoordinates: {self.coords}
+    \t\tType: {self.type.name}
+    \t\tDrones: \n\t\t\t{"\n\t\t\t".join([d for d in self.drones])}
+    \t\tConnections: \n\t\t\t{"\n\t\t\t".join([c.show() for c in self._connections])}
+    \t\tColor: {self.color.name}\n\x1b[0m"""
             else:
                 pass
 
@@ -147,16 +150,18 @@ class Map():
     def move(self, z1: "Map.Zone", z2: "Map.Zone", d: str):
         if (z1 in self.get_zones() and
             z2 in self.get_zones() and
-            d in z2.drones and
+            d in z1.drones and
                 z2.name in [c.dest.name for c in z1.get_connections()]):
             z1.drones.remove(d)
             z2.drones.append(d)
             print(f"Moved {d} from {z1.name} to {z2.name}")
         else:
-            print("\x1b[41m\nOne of the following is not true:")
-            print(f"\tBoth zones are in the map")
-            print(f"\t{d} is in {z1.name}")
-            print(f"\tThere is a connection from {z1.name} to {z2.name}\x1b[0m")
+            raise Exception(
+                f'''\x1b[43m\n\n\tMap.move ERROR:\n\n\tOne of the following is\
+ not true:
+            \t\tBoth zones are in the map
+            \t\t'{d}' is in {z1.name}
+            \t\tThere is a connection from '{z1.name}' to '{z2.name}'\x1b\n[0m''')
 
     def get_zones(self) -> list["Map.Zone"]:
         return self._zones
@@ -226,17 +231,20 @@ if __name__ == "__main__":
     #     print(CLEAR_SCREEN)
     #     print("## ", end='')
     #     cmd = input()
-    with open('maps/easy/02_simple_fork.txt') as file:
-        pconfig: str = parse_config(file.read())
-    m: Map = Map(pconfig)
-    # [print(z.show(0)) for z in m.get_zones()]
-    print(f"Map size: {m.dimensions}")
-    g: graphics.Grid = graphics.Grid(m, 3, vpad=5, hpad=4)
-    g.print_grid()
-    # print(m.show())
-    hub = m.get_zone('start')
-    # print(hub.get_connections()[0])
-    print(hub.show())
-    m.move(hub, m.get_zone("goal"), 'D0')
-    m.get_zone("goal")
-    print(m.get_zone("goal").show())
+    try:
+        with open('maps/easy/02_simple_fork.txt') as file:
+            pconfig: str = parse_config(file.read())
+        m: Map = Map(pconfig)
+        # [print(z.show(0)) for z in m.get_zones()]
+        print(f"Map size: {m.dimensions}")
+        g: graphics.Grid = graphics.Grid(m, 3, vpad=5, hpad=4)
+        g.print_grid()
+        # print(m.show())
+        hub = m.get_zone('start')
+        # print(hub.get_connections()[0])
+        print(hub.get_connections())
+        m.move(hub, m.get_zone("junction"), 'D1')
+        m.move(m.get_zone("junction"), hub, 'D1')
+        print(m.get_zone("junction").show())
+    except Exception as e:
+        print(e)
