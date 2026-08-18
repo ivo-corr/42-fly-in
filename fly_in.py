@@ -116,35 +116,51 @@ class Map():
             if ("nb_drones" in c[0]):
                 self.drones = int(c[1])
             if ('hub' in c[0]):
+                # this branch of the if-else manages cases where we have
+                # coordinates in the y-axis
                 if int(c[1].split(" ")[1:3][1]) < 0:
                     absolute: int = abs(int(c[1].split(" ")[1:3][1]))
                     if (absolute > delta):
                         for z in self._zones:
                             z.coords = [z.coords[0], z.coords[1] + absolute]
-                    self._zones.append(Map.Zone(name := c[1].split(" ")[0],
-                                                tmp := [
-                                                    c[1].split(" ")[1], '0' if
-                                                    absolute > delta else
-                                                    str(delta-absolute)],
-                                                color=[co for co in
-                                                Color.__members__
-                                                if co in c[1].upper()][0],
-                                                drones=self.drones if name ==
-                                                "start" else 0))
+                    if ["max_drones"] in meta:
+                        md: int = c[1].split("max_drones=")[1]
+                        md = md.split("]")[0] if ']' in\
+                            md else md.split(' ')[0]
+                    self._zones.append(
+                        Map.Zone(
+                            name := c[1].split(" ")[0],
+                            tmp := [
+                                c[1].split(" ")[1], '0' if
+                                absolute > delta else
+                                str(delta-absolute)],
+                            color=[co for co in
+                                   Color.__members__
+                                   if co in c[1].upper()][0],
+                            capacity = int(md) if ["max_drones"] in meta
+                            else -1,
+                            drones=self.drones if name ==
+                            "start" else 0))
                     delta = absolute if absolute > delta else delta
                 else:
                     if (delta > 0):
-                        # breakpoint()
                         pass
                     tmp = c[1].split(" ")[1:3]
                     tmp[1] = str(int(tmp[1]) + delta)
-                    self._zones.append(Map.Zone(name := c[1].split(" ")[0],
-                                                tmp,
-                                                color=[co for co in
-                                                Color.__members__
-                                                if co in c[1].upper()][0],
-                                                drones=self.drones if name ==
-                                                "start" else 0))
+                    if ["max_drones"] in meta:
+                        md: int = c[1].split("max_drones=")[1]
+                        md = md.split("]")[0] if ']' in\
+                            md else md.split(' ')[0]
+                    self._zones.append(
+                        Map.Zone(name := c[1].split(" ")[0],
+                                 tmp,
+                                 color=[co for co in
+                                        Color.__members__
+                                        if co in c[1].upper()][0],
+                                 capacity=int(md) if ["max_drones"] in meta
+                                 else -1,
+                                 drones=self.drones if name ==
+                                 "start" else 0))
                 if (int(tmp[0]) > self.dimensions[0]):
                     self.dimensions[0] = int(tmp[0])
                 if (int(tmp[1]) > self.dimensions[1]):
@@ -171,7 +187,7 @@ class Map():
                 z2.name in [c.dest.name for c in z1.get_connections()]):
             z1.drones.remove(d)
             z2.drones.append(d)
-            print(f"Moved {d} from {z1.name} to {z2.name}")
+            print(f"Moved\t{d}\tfrom\t{z1.name}\tto\t{z2.name}")
         else:
             raise Exception(
                 f'''\x1b[43m\n\n\tMap.move ERROR:\n\n\tOne of the following is\
@@ -208,10 +224,12 @@ def parse_config(file: str):
 
 
 def select_map() -> str:
-    select: str = ""
-    print("\x1b[42m")
-    print("Pick a map\x1b[0m")
-    directory = 'maps/'
+    print(CLEAR_SCREEN)
+    print('\x1b[36m'+TITLE+'\x1b[0m')
+    print("\x1b[42m\n")
+    print("Hello please pick a map\n\x1b[0m")
+    file_index: list[str] = []
+    directory: str = 'maps/'
     directories = [d for d in os.listdir(directory) if
                    os.path.isdir(os.path.join(directory, d))]
     files = [f for f in os.listdir(directory) if
@@ -221,15 +239,23 @@ def select_map() -> str:
                   os.path.isfile(os.path.join(directory+"/"+d, f))]
         print("\t\x1b[34m" + d + "/\x1b[0m")
         for df in dfiles:
-            print("\t\t\x1b[32m"+df+"\x1b[0m" if df.endswith(".txt") else
+            if df.endswith(".txt"):
+                file_index.append([str(directories.index(d)) + '.' +
+                                   str(dfiles.index(df)), d+'/'+df])
+            print("\t\t\x1b[32m"+f'({directories.index(d)}.{dfiles.index(df)})\
+                  \t'+df+"\x1b[0m" if df.endswith(".txt") else
                   "\t\x1b[31m"+df+" (not a text file)\x1b[0m")
     for f in files:
-        print("\t\x1b[32m"+f+"\x1b[0m" if f.endswith(".txt") else
+        print("\t\x1b[32m"+f'({files.index(f)})\t'+f+"\x1b[0m" if
+              f.endswith(".txt") else
               "\t\x1b[31m"+f+" (not a text file)\x1b[0m")
-    # print(directories)
-    # print(files)
-    input("## ")
-    with open('maps/test_map.txt') as file:
+    print(file_index)
+    choice = input("\n\x1b[46m## ")
+    if (choice not in [i[0] for i in file_index]):
+        print('\x1b[0m')
+        select_map()
+    with open('maps/'+[m[1] for m in file_index if m[0] == choice][0]) as file:
+        print('\x1b[0m')
         pconfig: str = parse_config(file.read())
     return pconfig
 
@@ -251,7 +277,7 @@ def next_turn(m: Map) -> tuple[int, int]:
                                       if next.coords[0] > z.coords[0]]
             if len(next_forward) > 0:
                 m.move(z, next_forward[0], d)
-            move_count += 1
+                move_count += 1
     # print("Zones with drones in turn: " +
     #       f"{[z.name for z in m.get_zones(only_occupied=True)]}")
     print(f"Number of moves in this turn: {move_count}")
@@ -272,37 +298,29 @@ if __name__ == "__main__":
 '''
 
     print('\x1b[94m'+TITLE+'\x1b[0m')
-    # select_map()
-    # print("## ", end='')
-    # cmd = input("")
-    # while (cmd != "0"):
-    #     print(CLEAR_SCREEN)
-    #     print("## ", end='')
-    #     cmd = input()
-    try:
-        with open('maps/easy/01_linear_path.txt') as file:
-            pconfig: str = parse_config(file.read())
-        m: Map = Map(pconfig)
-        # [print(z.show(0)) for z in m.get_zones()]
-        print(f"Map size: {m.dimensions}")
-        g: graphics.Grid = graphics.Grid(m, 3, vpad=5, hpad=4)
-        g.print_grid()
-        # print(m.show())
-        hub = m.get_zone('start')
-        # print(hub.get_connections()[0])
-        print(hub.show())
-        turn: int = 0
+    pconfig: str = select_map()
+    # try:
+    m: Map = Map(pconfig)
+    # [print(z.show(0)) for z in m.get_zones()]
+    print(f"Map size: {m.dimensions}")
+    g: graphics.Grid = graphics.Grid(m, 3, vpad=5, hpad=4)
+    g.print_grid()
+    # print(m.show())
+    hub = m.get_zone('start')
+    # print(hub.get_connections()[0])
+    print(hub.show())
+    turn: int = 0
+    print(f"==== Turn {turn} ====")
+    turn += 1
+    tmoves: int
+    finished: int
+    tmoves, finished = next_turn(m)
+    total_moves: int = tmoves
+    while (not finished):
         print(f"==== Turn {turn} ====")
-        turn += 1
-        tmoves: int
-        finished: int
         tmoves, finished = next_turn(m)
-        total_moves: int = tmoves
-        while (not finished):
-            print(f"==== Turn {turn} ====")
-            tmoves, finished = next_turn(m)
-            total_moves += tmoves
-            turn += 1
-        print(f"Total moves: {total_moves}")
-    except Exception as e:
-        print(e)
+        total_moves += tmoves
+        turn += 1
+    print(f"Total moves: {total_moves}")
+    # except Exception as e:
+    #     print(e)
