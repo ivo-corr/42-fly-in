@@ -267,17 +267,24 @@ def next_turn(m: Map) -> tuple[int, int]:
     False otherwise
     '''
     move_count: int = 0
+    moved_drones: list[str] = []
+    move_flag: bool = True
     if len(m.get_zone("goal").drones) == m.drones:
         return [move_count, 1]
-    for z in m.get_zones(only_occupied=True):
-        # here i use a copy of the list of drones because the list
-        # itself can change during iteration, causing elements to be skipped
-        for d in z.drones.copy():
-            next_forward: Map.Zone = [next for next in z.possible_moves()
-                                      if next.coords[0] > z.coords[0]]
-            if len(next_forward) > 0:
-                m.move(z, next_forward[0], d)
-                move_count += 1
+    while (move_flag):
+        move_flag = False
+        for z in m.get_zones(only_occupied=True):
+            # here i use a copy of the list of drones because the list
+            # itself can change during iteration, causing elements to be skipped
+            for d in z.drones.copy():
+                next_forward: Map.Zone = [next for next in z.possible_moves()
+                                        if next.coords[0] > z.coords[0]]
+                if len(next_forward) > 0 and d not in moved_drones:
+                    m.move(z, next_forward[0], d)
+                    move_flag = True
+                    moved_drones.append(d)
+                    move_count += 1
+
     # print("Zones with drones in turn: " +
     #       f"{[z.name for z in m.get_zones(only_occupied=True)]}")
     print(f"Number of moves in this turn: {move_count}")
