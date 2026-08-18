@@ -57,10 +57,13 @@ class Map():
                 return f"{self.orig.name} <=> {self.dest.name}"
 
         def __init__(self, name: str, coords: tuple[str, str] | list[str],
-                     color: str = "NONE", capacity: int = -1, drones: int = 0):
+                     type: ZoneType = ZoneType.NORMAL,
+                     color: str = "NONE",
+                     capacity: int = -1,
+                     drones: int = 0):
             self.name: str = name
             self.coords: tuple[int, int] | list[int] = [int(x) for x in coords]
-            self.type = ZoneType.NORMAL
+            self.type = type
             self.color = [
                 c for c in Color if str(c) == "Color." + color.upper()][0]
             self._connections: list[Map.Zone.Connection] = []
@@ -77,7 +80,7 @@ class Map():
 
         def available(self) -> bool:
             if (self.capacity == -1 or
-                len(self.drones) < self.capacity):
+                    len(self.drones) < self.capacity):
                 return True
             return False
 
@@ -134,10 +137,11 @@ class Map():
                                 c[1].split(" ")[1], '0' if
                                 absolute > delta else
                                 str(delta-absolute)],
+                            type=ZoneType.NORMAL,
                             color=[co for co in
                                    Color.__members__
                                    if co in c[1].upper()][0],
-                            capacity = int(md) if ["max_drones"] in meta
+                            capacity=int(md) if ["max_drones"] in meta
                             else -1,
                             drones=self.drones if name ==
                             "start" else 0))
@@ -271,14 +275,17 @@ def next_turn(m: Map) -> tuple[int, int]:
     move_flag: bool = True
     if len(m.get_zone("goal").drones) == m.drones:
         return [move_count, 1]
+    # as long as there have been moved drones keep checking if zones have been
+    # unlocked making more moves are possible, same structure as bubble sort
     while (move_flag):
         move_flag = False
         for z in m.get_zones(only_occupied=True):
             # here i use a copy of the list of drones because the list
-            # itself can change during iteration, causing elements to be skipped
+            # itself can change during iteration, causing elements to be
+            # skipped
             for d in z.drones.copy():
                 next_forward: Map.Zone = [next for next in z.possible_moves()
-                                        if next.coords[0] > z.coords[0]]
+                                          if next.coords[0] > z.coords[0]]
                 if len(next_forward) > 0 and d not in moved_drones:
                     m.move(z, next_forward[0], d)
                     move_flag = True
