@@ -88,6 +88,7 @@ class Grid():
                          conn[1]])
                 # destination is closer to median that origin
                 else:
+                    breakpoint()
                     # x coord aligned
                     if (conn[0][0] == conn[1][0] and delta_y != 0):
                         map[conn[0][1] + (1 if delta_y < 0 else (-1))][conn[0][0]] =\
@@ -107,15 +108,13 @@ class Grid():
                                 connectors["tr_edge"]) + (f'{self.colors["BG_BG"]} ' * (self.csize//2))
                         return connect(
                             map,
-                            [[conn[0][0] + 1, conn[0][1]], conn[1]]
+                            [[conn[0][0] + 1, conn[0][1] + (-2 if (delta_x == 1 and delta_y < 0) else (2 if (delta_x == 1 and delta_y > 0) else 0))], conn[1]]
                         )
             elif (delta_y == 0 and delta_x != 0):
                 # breakpoint()
                 map[conn[0][1]][conn[0][0] + 1] = connectors[
                     'horizontal'] * self.csize
                 return connect(map, [[conn[0][0] + 1, conn[0][1]], conn[1]])
-            
-            
 
         amap: list[list[str]] = []
         connectors: dict[str] = {'horizontal': f"{self.colors['BG_BG']}─"
