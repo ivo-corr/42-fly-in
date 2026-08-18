@@ -234,7 +234,7 @@ def select_map() -> str:
     return pconfig
 
 
-def next_turn(m: Map) -> int:
+def next_turn(m: Map) -> tuple[int, int]:
     '''
     next_turn runs the next simulation turn
     returns True when all drones reached goal
@@ -242,18 +242,22 @@ def next_turn(m: Map) -> int:
     '''
     move_count: int = 0
     if len(m.get_zone("goal").drones) == m.drones:
-        return move_count
+        return [move_count, 1]
     for z in m.get_zones(only_occupied=True):
-        for d in z.drones:
+        # here i use a copy of the list of drones because the list
+        # itself can change during iteration, causing elements to be skipped
+        for d in z.drones.copy():
             next_forward: Map.Zone = [next for next in z.possible_moves()
                                       if next.coords[0] > z.coords[0]]
             if len(next_forward) > 0:
                 m.move(z, next_forward[0], d)
             move_count += 1
-    print("Zones with drones in turn: " +
-          f"{[z.name for z in m.get_zones(only_occupied=True)]}")
+    # print("Zones with drones in turn: " +
+    #       f"{[z.name for z in m.get_zones(only_occupied=True)]}")
     print(f"Number of moves in this turn: {move_count}")
-    return move_count
+    if len(m.get_zone("goal").drones) == m.drones:
+        return [move_count, 1]
+    return [move_count, 0]
 
 
 if __name__ == "__main__":
@@ -276,7 +280,7 @@ if __name__ == "__main__":
     #     print("## ", end='')
     #     cmd = input()
     try:
-        with open('maps/easy/02_simple_fork.txt') as file:
+        with open('maps/easy/01_linear_path.txt') as file:
             pconfig: str = parse_config(file.read())
         m: Map = Map(pconfig)
         # [print(z.show(0)) for z in m.get_zones()]
@@ -287,13 +291,18 @@ if __name__ == "__main__":
         hub = m.get_zone('start')
         # print(hub.get_connections()[0])
         print(hub.show())
-        print(m.get_zone("junction").)
         turn: int = 0
         print(f"==== Turn {turn} ====")
         turn += 1
-        while (mvs := next_turn(m)):
+        tmoves: int
+        finished: int
+        tmoves, finished = next_turn(m)
+        total_moves: int = tmoves
+        while (not finished):
             print(f"==== Turn {turn} ====")
+            tmoves, finished = next_turn(m)
+            total_moves += tmoves
             turn += 1
-
+        print(f"Total moves: {total_moves}")
     except Exception as e:
         print(e)
