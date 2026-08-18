@@ -92,9 +92,11 @@ class Map():
                 return f"""\x1b[46m\n\n\t{self.name}:
     \t\tCoordinates: {self.coords}
     \t\tType: {self.type.name}
-    \t\tDrones: \n\t\t\t{"\n\t\t\t".join([d for d in self.drones])}
-    \t\tConnections: \n\t\t\t{"\n\t\t\t".join([c.show() for c in self._connections])}
-    \t\tColor: {self.color.name}\n\x1b[0m"""
+    \t\tDrones: \n\t\t\t{(chr(10) + (chr(9) * 3)).join([d for d in self.drones])}
+    \t\tConnections: \n\t\t\t{(chr(10) + (chr(9) * 3)).join([c.show()
+                                            for c in self._connections])}
+    \t\tColor: {self.color.name}\n\x1b[0m
+    """
             else:
                 pass
 
@@ -194,6 +196,7 @@ class Map():
 Zones: {[z.name for z in self.get_zones()]}
         '''
 
+
 def parse_config(file: str):
     result: list[list[str] | list[list[list[str]]]] = []
     splat: list[str] = file.split("\n")
@@ -242,10 +245,14 @@ def next_turn(m: Map) -> int:
         return move_count
     for z in m.get_zones(only_occupied=True):
         for d in z.drones:
-            next_forward: Map.Zone = [next for next in z.possible_moves() if next.coords[0] > z.coords[0]]
+            next_forward: Map.Zone = [next for next in z.possible_moves()
+                                      if next.coords[0] > z.coords[0]]
             if len(next_forward) > 0:
                 m.move(z, next_forward[0], d)
             move_count += 1
+    print("Zones with drones in turn: " +
+          f"{[z.name for z in m.get_zones(only_occupied=True)]}")
+    print(f"Number of moves in this turn: {move_count}")
     return move_count
 
 
@@ -279,15 +286,13 @@ if __name__ == "__main__":
         # print(m.show())
         hub = m.get_zone('start')
         # print(hub.get_connections()[0])
-        print(m.get_zone("junction").show())
+        print(hub.show())
+        print(m.get_zone("junction").)
         turn: int = 0
         print(f"==== Turn {turn} ====")
         turn += 1
         while (mvs := next_turn(m)):
             print(f"==== Turn {turn} ====")
-            print(f"Zones with drones in turn: {[z.name for z in m.get_zones(only_occupied=True)]}")
-            print(f"Number of moves in this turn: {mvs}")
-            next_turn(m)
             turn += 1
 
     except Exception as e:
