@@ -253,7 +253,6 @@ def select_map() -> str:
         print("\t\x1b[32m"+f'({files.index(f)})\t'+f+"\x1b[0m" if
               f.endswith(".txt") else
               "\t\x1b[31m"+f+" (not a text file)\x1b[0m")
-    print(file_index)
     choice = input("\n\x1b[46m## ")
     if (choice not in [i[0] for i in file_index]):
         print('\x1b[0m')

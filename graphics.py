@@ -70,11 +70,11 @@ class Grid():
             if (delta_x == 1 and (delta_y == 0 or abs(delta_y) == 1)):
                 return True
             if delta_y != 0:
-                # breakpoint()
                 # first case: origin is closer to median than destination
+                # render y-axis first and then x-axis
                 if (abs(conn[0][1] - self.hmedian) <
                         abs(conn[1][1] - self.hmedian)):
-                    print("Origin is closer to median than destination")
+                    # origin is closer to median than destination
                     map[conn[0][1] + (1 if delta_y > 0 else -1)][conn[0][0]] =\
                         (f'{self.colors["BG_BG"]} ' * (self.csize//2)) +\
                         ((connectors['vertical'] + f'{self.colors["BG_BG"]} ')
@@ -87,31 +87,48 @@ class Grid():
                         [[conn[0][0], conn[0][1] + (1 if delta_y > 0 else -1)],
                          conn[1]])
                 # destination is closer to median that origin
+                # render x-axis first and then y-axis
                 else:
                     breakpoint()
+                    # if (delta_x == 0):
+                    #     map[conn[0][1] + (-1 if delta_y < 0 else 1), conn[0][0]] =
+                    map[conn[0][1] + ((-1 if delta_y < 0 else 1) if delta_x == 0 else 0)][conn[0][0] + (1 if delta_x > 0 else 0)] =\
+                        ((connectors['horizontal'] * self.csize)
+                         if abs(delta_x) > 1
+                         else
+                         ((f'{self.colors["BG_BG"]}{connectors["horizontal"]}'
+                           * (self.csize//2)) + (
+                               connectors['br_edge']
+                               if delta_x == 1
+                               else
+                               connectors['tr_edge']) +
+                            (f'{self.colors["BG_BG"]} ' * (self.csize//2)))) if delta_x != 0 else (f'{self.colors["BG_BG"]} ' * (self.csize//2)) + (connectors['vertical'] + f'{self.colors["BG_BG"]} ')
+                    return connect(
+                        map,
+                        [[conn[0][0] + (1 if delta_x > 0 else -1), conn[0][1] + (-1 if delta_y < 0 and delta_x == 0 else 0)],
+                         conn[1]])
                     # x coord aligned
-                    if (conn[0][0] == conn[1][0] and delta_y != 0):
-                        map[conn[0][1] + (1 if delta_y < 0 else (-1))][conn[0][0]] =\
-                            (f'{self.colors["BG_BG"]} ' * (self.csize//2)) +\
-                            ((connectors['vertical'] + f'{self.colors["BG_BG"]} ' * (self.csize//2)))
-                        return connect(
-                            map,
-                            [[conn[0][0], conn[0][1] + (1 if delta_y > 0 else -1)], conn[1]]
-                        )
-                    # x coord not aligned
-                    else:
-                        map[conn[0][1]][conn[0][0] + 1] =\
-                            connectors["horizontal"] * self.csize if\
-                            delta_x > 1 else\
-                            (connectors['horizontal'] * (self.csize//2)) + (
-                                connectors["br_edge"] if delta_y < 0 else
-                                connectors["tr_edge"]) + (f'{self.colors["BG_BG"]} ' * (self.csize//2))
-                        return connect(
-                            map,
-                            [[conn[0][0] + 1, conn[0][1] + (-2 if (delta_x == 1 and delta_y < 0) else (2 if (delta_x == 1 and delta_y > 0) else 0))], conn[1]]
-                        )
+                    # if (conn[0][0] == conn[1][0] and delta_y != 0):
+                    #     map[conn[0][1] + (1 if delta_y < 0 else (-1))][conn[0][0]] =\
+                    #         (f'{self.colors["BG_BG"]} ' * (self.csize//2)) +\
+                    #         ((connectors['vertical'] + f'{self.colors["BG_BG"]} ' * (self.csize//2)))
+                    #     return connect(
+                    #         map,
+                    #         [[conn[0][0], conn[0][1] + (1 if delta_y > 0 else -1)], conn[1]]
+                    #     )
+                    # # x coord not aligned
+                    # else:
+                    #     map[conn[0][1]][conn[0][0] + 1] =\
+                    #         connectors["horizontal"] * self.csize if\
+                    #         delta_x > 1 else\
+                    #         (connectors['horizontal'] * (self.csize//2)) + (
+                    #             connectors["br_edge"] if delta_y < 0 else
+                    #             connectors["tr_edge"]) + (f'{self.colors["BG_BG"]} ' * (self.csize//2))
+                    #     return connect(
+                    #         map,
+                    #         [[conn[0][0] + 1, conn[0][1] + (-2 if (delta_x == 1 and delta_y < 0) else (2 if (delta_x == 1 and delta_y > 0) else 0))], conn[1]]
+                    #     )
             elif (delta_y == 0 and delta_x != 0):
-                # breakpoint()
                 map[conn[0][1]][conn[0][0] + 1] = connectors[
                     'horizontal'] * self.csize
                 return connect(map, [[conn[0][0] + 1, conn[0][1]], conn[1]])
