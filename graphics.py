@@ -92,6 +92,8 @@ class Grid():
                     breakpoint()
                     # if (delta_x == 0):
                     #     map[conn[0][1] + (-1 if delta_y < 0 else 1), conn[0][0]] =
+                    # if ([conn[0][0], conn[0][1]] == conn[1]):
+                        return True
                     map[conn[0][1] + ((-1 if delta_y < 0 else 1) if delta_x == 0 else 0)][conn[0][0] + (1 if delta_x > 0 else 0)] =\
                         ((connectors['horizontal'] * self.csize)
                          if abs(delta_x) > 1
@@ -105,7 +107,7 @@ class Grid():
                             (f'{self.colors["BG_BG"]} ' * (self.csize//2)))) if delta_x != 0 else (f'{self.colors["BG_BG"]} ' * (self.csize//2)) + (connectors['vertical'] + f'{self.colors["BG_BG"]} ')
                     return connect(
                         map,
-                        [[conn[0][0] + (1 if delta_x > 0 else -1), conn[0][1] + (-1 if delta_y < 0 and delta_x == 0 else 0)],
+                        [[conn[0][0] + (1 if delta_x > 0 else 0), conn[0][1] + (-1 if delta_y < 0 and delta_x == 0 else 0)],
                          conn[1]])
                     # x coord aligned
                     # if (conn[0][0] == conn[1][0] and delta_y != 0):
