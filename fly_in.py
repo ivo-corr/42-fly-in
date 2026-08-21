@@ -79,6 +79,8 @@ class Map():
             return (self._connections)
 
         def available(self) -> bool:
+            if (self.type == "BLOCKED"):
+                return False
             if (self.capacity == -1 or
                     len(self.drones) < self.capacity):
                 return True
@@ -94,7 +96,7 @@ class Map():
             if mode == 0:
                 return f"""\x1b[46m\n\n\t{self.name}:
     \t\tCoordinates: {self.coords}
-    \t\tType: {self.type.name}
+    \t\tType: {self.type}
     \t\tDrones: \n\t\t\t{(chr(10) + (chr(9) * 3)).join([d for d in self.drones])}
     \t\tConnections: \n\t\t\t{(chr(10) + (chr(9) * 3)).join([c.show()
                                             for c in self._connections])}
@@ -130,6 +132,11 @@ class Map():
                         md: int = c[1].split("max_drones=")[1]
                         md = md.split("]")[0] if ']' in\
                             md else md.split(' ')[0]
+                    if ['zone'] in meta:
+                        zsplit: list[str] = c[1].split("zone=")[1]
+                        zone_md = zsplit.split(" ")[0]\
+                            if len(zsplit.split(" ")) > 1\
+                            else zsplit.split("]")[0]
                     self._zones.append(
                         Map.Zone(
                             name := c[1].split(" ")[0],
@@ -137,12 +144,13 @@ class Map():
                                 c[1].split(" ")[1], '0' if
                                 absolute > delta else
                                 str(delta-absolute)],
-                            type=ZoneType.NORMAL,
                             color=[co for co in
                                    Color.__members__
                                    if co in c[1].upper()][0],
                             capacity=int(md) if ["max_drones"] in meta
                             else -1,
+                            type=ZoneType.__members__.get(
+                                zone_md.upper(), ZoneType.NORMAL).name,
                             drones=self.drones if name ==
                             "start" else 0))
                     delta = absolute if absolute > delta else delta
@@ -152,17 +160,26 @@ class Map():
                     tmp = c[1].split(" ")[1:3]
                     tmp[1] = str(int(tmp[1]) + delta)
                     if ["max_drones"] in meta:
-                        md: int = c[1].split("max_drones=")[1]
-                        md = md.split("]")[0] if ']' in\
-                            md else md.split(' ')[0]
+                        drones_md: int = c[1].split("max_drones=")[1]
+                        drones_md = drones_md.split("]")[0] if ']' in\
+                            drones_md else md.split(' ')[0]
+                    zone_md: str = "NORMAL"
+                    if ['zone'] in meta:
+                        zsplit: list[str] = c[1].split("zone=")[1]
+                        zone_md = zsplit.split(" ")[0]\
+                            if len(zsplit.split(" ")) > 1\
+                            else zsplit.split("]")[0]
                     self._zones.append(
                         Map.Zone(name := c[1].split(" ")[0],
                                  tmp,
                                  color=[co for co in
                                         Color.__members__
                                         if co in c[1].upper()][0],
-                                 capacity=int(md) if ["max_drones"] in meta
+                                 capacity=int(drones_md)
+                                 if ["max_drones"] in meta
                                  else -1,
+                                 type=ZoneType.__members__.get(
+                                     zone_md.upper(), ZoneType.NORMAL).name,
                                  drones=self.drones if name ==
                                  "start" else 0))
                 if (int(tmp[0]) > self.dimensions[0]):
@@ -283,8 +300,17 @@ def next_turn(m: Map) -> tuple[int, int]:
             # itself can change during iteration, causing elements to be
             # skipped
             for d in z.drones.copy():
+                next_forward_priority: Map.Zone = [
+                    next for next in z.possible_moves()
+                    if next.coords[0] > z.coords[0] and
+                    next.type == "PRIORITY"]
                 next_forward: Map.Zone = [next for next in z.possible_moves()
                                           if next.coords[0] > z.coords[0]]
+                if len(next_forward_priority) > 0 and d not in moved_drones:
+                    m.move(z, next_forward_priority[0], d)
+                    move_flag = True
+                    moved_drones.append(d)
+                    move_count += 1
                 if len(next_forward) > 0 and d not in moved_drones:
                     m.move(z, next_forward[0], d)
                     move_flag = True
@@ -320,7 +346,8 @@ if __name__ == "__main__":
     g.print_grid()
     # print(m.show())
     hub = m.get_zone('start')
-    # print(hub.get_connections()[0])
+    breakpoint()
+    print(hub.get_connections()[0])
     print(hub.show())
     turn: int = 0
     print(f"==== Turn {turn} ====")
@@ -330,6 +357,7 @@ if __name__ == "__main__":
     tmoves, finished = next_turn(m)
     total_moves: int = tmoves
     while (not finished):
+        breakpoint()
         print(f"==== Turn {turn} ====")
         tmoves, finished = next_turn(m)
         total_moves += tmoves

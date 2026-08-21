@@ -89,11 +89,11 @@ class Grid():
                 # destination is closer to median that origin
                 # render x-axis first and then y-axis
                 else:
-                    breakpoint()
+                    # breakpoint()
                     # if (delta_x == 0):
                     #     map[conn[0][1] + (-1 if delta_y < 0 else 1), conn[0][0]] =
                     # if ([conn[0][0], conn[0][1]] == conn[1]):
-                        return True
+                    return True
                     map[conn[0][1] + ((-1 if delta_y < 0 else 1) if delta_x == 0 else 0)][conn[0][0] + (1 if delta_x > 0 else 0)] =\
                         ((connectors['horizontal'] * self.csize)
                          if abs(delta_x) > 1
