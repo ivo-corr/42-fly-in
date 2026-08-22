@@ -227,7 +227,14 @@ class Map():
         if len(found_zone) == 1:
             return found_zone[0]
         return None
-    
+
+    def get_graph(self):
+        vertices: list[tuple[int, int]] = []
+        for zi in range(len(self._zones)):
+            for c in self._zones[zi].get_connections():
+                vertices.append((self._zones.index(c.orig), self._zones.index(c.dest)))
+        return (vertices)
+
     def show(self):
         return f'''
 Zones: {[z.name for z in self.get_zones()]}
@@ -286,6 +293,12 @@ def next_turn(m: Map) -> tuple[int, int]:
     returns True when all drones reached goal
     False otherwise
     '''
+    def hasPath(xs: list[tuple[int]], o: int, d: int):
+        if (o == d):
+            return True
+        xsf = [(n, m) for (n, m) in xs if n != o]
+        return any([hasPath(xsf, m, d) for (n, m) in xs if n == o])
+
     move_count: int = 0
     moved_drones: list[str] = []
     move_flag: bool = True
@@ -295,6 +308,9 @@ def next_turn(m: Map) -> tuple[int, int]:
     # unlocked making more moves are possible, same structure as bubble sort
     while (move_flag):
         move_flag = False
+        if (len(m.get_zone("slow_path3").drones) > 0):
+            # breakpoint()
+            print(m.get_zone("slow_path3").drones)
         for z in m.get_zones(only_occupied=True):
             # here i use a copy of the list of drones because the list
             # itself can change during iteration, causing elements to be
@@ -322,6 +338,8 @@ def next_turn(m: Map) -> tuple[int, int]:
     print(f"Number of moves in this turn: {move_count}")
     if len(m.get_zone("goal").drones) == m.drones:
         return [move_count, 1]
+    if (move_count == 0):
+        return [move_count, 1]
     return [move_count, 0]
 
 
@@ -341,27 +359,30 @@ if __name__ == "__main__":
     # try:
     m: Map = Map(pconfig)
     # [print(z.show(0)) for z in m.get_zones()]
+    m.get_connections()
+    breakpoint()
     print(f"Map size: {m.dimensions}")
     g: graphics.Grid = graphics.Grid(m, 3, vpad=5, hpad=4)
     g.print_grid()
     # print(m.show())
-    hub = m.get_zone('start')
-    breakpoint()
-    print(hub.get_connections()[0])
-    print(hub.show())
-    turn: int = 0
-    print(f"==== Turn {turn} ====")
-    turn += 1
-    tmoves: int
-    finished: int
-    tmoves, finished = next_turn(m)
-    total_moves: int = tmoves
-    while (not finished):
-        breakpoint()
-        print(f"==== Turn {turn} ====")
-        tmoves, finished = next_turn(m)
-        total_moves += tmoves
-        turn += 1
-    print(f"Total moves: {total_moves}")
+    # hub = m.get_zone('start')
+    # print(hub.get_connections()[0])
+    # print(hub.show())
+    # turn: int = 0
+    # print(f"==== Turn {turn} ====")
+    # turn += 1
+    # tmoves: int
+    # finished: int
+    # tmoves, finished = next_turn(m)
+    # total_moves: int = tmoves
+    # while (not finished):
+    #     # breakpoint()
+    #     print(f"==== Turn {turn} ====")
+    #     tmoves, finished = next_turn(m)
+    #     total_moves += tmoves
+    #     turn += 1
+    #     if not tmoves and finished:
+    #         print("\x1b[41mMAZE STUCK\x1b[0m")
+    # print(f"Total moves: {total_moves}")
     # except Exception as e:
     #     print(e)
