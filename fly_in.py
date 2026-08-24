@@ -72,8 +72,9 @@ class Map():
             for dn in range(drones):
                 self.drones.append("D"+str(dn))
 
-        def set_connection(self, dest: "Map.Zone"):
-            self._connections.append(Map.Zone.Connection(self, dest))
+        def set_connection(self, dest: "Map.Zone", capacity: int = -1):
+            self._connections.append(Map.Zone.Connection(
+                self, dest, max_capacity=capacity))
 
         def get_connections(self) -> list["Map.Zone.Connection"]:
             return (self._connections)
@@ -196,13 +197,22 @@ class Map():
                     self.dimensions[1] = int(tmp[1])
             if (c[0].lower() == "connection"):
                 origen: str = c[1].split("-")[0]
-                destination: str = c[1].split("-")[1]
+                destination: str = dst\
+                    if len((dst := c[1].split("-")[1]).split("[")) == 1\
+                    else dst.split(" [")[0]
+                mlc: int = -1
+                if ['max_link_capacity'] in meta:
+                    mlcs: str = c[1].split("max_link_capacity=")[1]
+                    if len(mlcs.split(" ")) == 1:
+                        mlc = int(mlcs.split("]")[0])
+                    else:
+                        mlc = int(mlcs.split(" ")[0])
                 for z in self._zones:
                     if z.name.lower() == origen.lower():
                         for zz in self._zones:
                             if zz.name.lower() == destination.lower():
-                                z.set_connection(zz)
-                                zz.set_connection(z)
+                                z.set_connection(zz, capacity=mlc)
+                                zz.set_connection(z, capacity=mlc)
         for z in self._zones:
             if (int(z.coords[0]) + 1 > self.dimensions[0]):
                 self.dimensions[0] = int(z.coords[0]) + 1
@@ -386,7 +396,7 @@ if __name__ == "__main__":
 ╚═╝     ╚══════╝╚═╝          ╚═╝╚═╝  ╚═══╝
 '''
 
-    print('\x1b[94m'+TITLE+'\x1b[0m')
+    # print('\x1b[94m'+TITLE+'\x1b[0m')
     pconfig: str = select_map()
     # try:
     m: Map = Map(pconfig)
