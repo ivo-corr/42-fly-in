@@ -347,15 +347,13 @@ def next_turn(m: Map) -> tuple[int, int]:
                               (z.node(m), m.get_zone("goal").node(m)))
                     and
                     nxtzone.type == "PRIORITY"]
-                next_forward: Map.Zone = [next for next in z.possible_moves()
-                                          if next.coords[0] > z.coords[0]]
-                # breakpoint()
-                # next_forward_priority: Map.Zone = [
-                #     next for next in z.possible_moves()
-                #     if next.coords[0] > z.coords[0] and
-                #     next.type == "PRIORITY"]
-                # next_forward: Map.Zone = [next for next in z.possible_moves()
-                #                           if next.coords[0] > z.coords[0]]
+                next_forward: Map.Zone = [
+                    nxtzone for nxtzone in z.possible_moves()
+                    if hasPath(
+                        m.get_graph(),
+                        (nxtzone.node(m), m.get_zone("goal").node(m)))
+                    < hasPath(m.get_graph(),
+                              (z.node(m), m.get_zone("goal").node(m)))]
                 if len(next_forward_priority) > 0 and d not in moved_drones:
                     m.move(z, next_forward_priority[0], d)
                     move_flag = True
