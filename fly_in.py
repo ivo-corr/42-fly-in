@@ -330,9 +330,6 @@ def next_turn(m: Map) -> tuple[int, int]:
     # unlocked making more moves are possible, same structure as bubble sort
     while (move_flag):
         move_flag = False
-        if (len(m.get_zone("slow_path3").drones) > 0):
-            pass
-            # breakpoint()
         for z in m.get_zones(only_occupied=True):
             # here i use a copy of the list of drones because the list
             # itself can change during iteration, causing elements to be
@@ -340,20 +337,23 @@ def next_turn(m: Map) -> tuple[int, int]:
             for d in z.drones.copy():
                 next_forward_priority: Map.Zone = [
                     nxtzone for nxtzone in z.possible_moves()
-                    if hasPath(
+                    if (step_count := hasPath(
                         m.get_graph(),
-                        (nxtzone.node(m), m.get_zone("goal").node(m)))
+                        (nxtzone.node(m), m.get_zone("goal").node(m))))
                     < hasPath(m.get_graph(),
                               (z.node(m), m.get_zone("goal").node(m)))
+                    and
+                    step_count != -1
                     and
                     nxtzone.type == "PRIORITY"]
                 next_forward: Map.Zone = [
                     nxtzone for nxtzone in z.possible_moves()
-                    if hasPath(
+                    if (scount := hasPath(
                         m.get_graph(),
-                        (nxtzone.node(m), m.get_zone("goal").node(m)))
+                        (nxtzone.node(m), m.get_zone("goal").node(m))))
                     < hasPath(m.get_graph(),
-                              (z.node(m), m.get_zone("goal").node(m)))]
+                              (z.node(m), m.get_zone("goal").node(m)))
+                    and scount != -1]
                 if len(next_forward_priority) > 0 and d not in moved_drones:
                     m.move(z, next_forward_priority[0], d)
                     move_flag = True
