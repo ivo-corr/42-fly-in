@@ -23,7 +23,11 @@ class Color(Enum):
     LIME = auto()
     MAGENTA = auto()
     GOLD = auto()
-
+    BLACK = auto()
+    MAROON = auto()
+    DARKRED = auto()
+    CRIMSON = auto()
+    RAINBOW = auto()
 
 class ZoneType(Enum):
     NORMAL = 0
@@ -64,8 +68,9 @@ class Map():
             self.name: str = name
             self.coords: tuple[int, int] | list[int] = [int(x) for x in coords]
             self.type = type
-            self.color = [
-                c for c in Color if str(c) == "Color." + color.upper()][0]
+            self.color = color
+            # self.color = [
+            #     c for c in Color if str(c) == "Color." + color.upper()][0]
             self._connections: list[Map.Zone.Connection] = []
             self.drones: list[str] = []
             self.capacity: int = capacity
@@ -109,7 +114,7 @@ class Map():
     \t\tDrones: \n\t\t\t{(chr(10) + (chr(9) * 3)).join([d for d in self.drones])}
     \t\tConnections: \n\t\t\t{(chr(10) + (chr(9) * 3)).join([c.show()
                                             for c in self._connections])}
-    \t\tColor: {self.color.name}\n\x1b[0m
+    \t\tColor: {self.color}\n\x1b[0m
     """
             else:
                 pass
@@ -123,6 +128,10 @@ class Map():
         delta denotes the y-axis offset caused by the weird negative index
         notation that was chosen for the map config files
         '''
+        self.colors: list[str] = ["NONE", "GREEN", "RED", "BLUE", "ORANGE",
+                             "YELLOW", "CYAN", "PURPLE", "BROWN",
+                             "LIME", "MAGENTA", "GOLD", "BLACK",
+                             "MAROON", "DARKRED", "CRIMSON", "RAINBOW"]
         for c in pconfig:
             meta: list[list[str]] = [
                 [md.lower()] for md in Metadata.__members__ if
@@ -132,6 +141,16 @@ class Map():
             if ('hub' in c[0]):
                 # this branch of the if-else manages cases where we have
                 # coordinates in the y-axis
+                # breakpoint()
+                color: str = "NONE"
+                if "color" in c[1]:
+                    color = c[1].split("color=")[1].upper()
+                    if len(color.split(" ")) == 1:
+                        color = color.split("]")[0]
+                    else:
+                        color = color.split(' ')[0]
+                    if color not in self.colors:
+                        self.colors.append(color)
                 if int(c[1].split(" ")[1:3][1]) < 0:
                     absolute: int = abs(int(c[1].split(" ")[1:3][1]))
                     if (absolute > delta):
@@ -153,9 +172,7 @@ class Map():
                                 c[1].split(" ")[1], '0' if
                                 absolute > delta else
                                 str(delta-absolute)],
-                            color=[co for co in
-                                   Color.__members__
-                                   if co in c[1].upper()][0],
+                            color=color,
                             capacity=int(md) if ["max_drones"] in meta
                             else -1,
                             type=ZoneType.__members__.get(
@@ -181,9 +198,7 @@ class Map():
                     self._zones.append(
                         Map.Zone(name := c[1].split(" ")[0],
                                  tmp,
-                                 color=[co for co in
-                                        Color.__members__
-                                        if co in c[1].upper()][0],
+                                 color=color,
                                  capacity=int(drones_md)
                                  if ["max_drones"] in meta
                                  else -1,
@@ -334,8 +349,14 @@ def next_turn(m: Map) -> tuple[int, int]:
     move_count: int = 0
     moved_drones: list[str] = []
     move_flag: bool = True
-    if len(m.get_zone("goal").drones) == m.drones:
-        return [move_count, 1]
+    if (m.get_zone("impossible_goal")):
+        goal_zone: Map.Zone = m.get_zone("impossible_goal")
+        if len(m.get_zone("impossible_goal").drones) == m.drones:
+            return [move_count, 1]
+    else:
+        goal_zone: Map.Zone = m.get_zone("goal")
+        if len(goal_zone.drones) == m.drones:
+            return [move_count, 1]
     # as long as there have been moved drones keep checking if zones have been
     # unlocked making more moves are possible, same structure as bubble sort
     while (move_flag):
@@ -349,9 +370,9 @@ def next_turn(m: Map) -> tuple[int, int]:
                     nxtzone for nxtzone in z.possible_moves()
                     if (step_count := hasPath(
                         m.get_graph(),
-                        (nxtzone.node(m), m.get_zone("goal").node(m))))
+                        (nxtzone.node(m), goal_zone.node(m))))
                     < hasPath(m.get_graph(),
-                              (z.node(m), m.get_zone("goal").node(m)))
+                              (z.node(m), goal_zone.node(m)))
                     and
                     step_count != -1
                     and
@@ -360,9 +381,9 @@ def next_turn(m: Map) -> tuple[int, int]:
                     nxtzone for nxtzone in z.possible_moves()
                     if (scount := hasPath(
                         m.get_graph(),
-                        (nxtzone.node(m), m.get_zone("goal").node(m))))
+                        (nxtzone.node(m), goal_zone.node(m))))
                     < hasPath(m.get_graph(),
-                              (z.node(m), m.get_zone("goal").node(m)))
+                              (z.node(m), goal_zone.node(m)))
                     and scount != -1]
                 if len(next_forward_priority) > 0 and d not in moved_drones:
                     m.move(z, next_forward_priority[0], d)
@@ -378,7 +399,7 @@ def next_turn(m: Map) -> tuple[int, int]:
     # print("Zones with drones in turn: " +
     #       f"{[z.name for z in m.get_zones(only_occupied=True)]}")
     print(f"Number of moves in this turn: {move_count}")
-    if len(m.get_zone("goal").drones) == m.drones:
+    if len(goal_zone.drones) == m.drones:
         return [move_count, 1]
     if (move_count == 0):
         return [move_count, 1]
