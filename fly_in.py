@@ -43,6 +43,7 @@ class Map():
                          max_capacity: int = -1):
                 self.orig = orig
                 self.dest = dest
+                self.name = f"{self.orig.name}-{self.dest.name}"
                 self.drones: list["str"] = []
                 self.capacity = max_capacity
 
@@ -122,7 +123,8 @@ class Map():
     def __init__(self, pconfig: str):
         self._zones: list[Map.Zone] = []
         self.dimensions: list[int] = [0, 0]
-        self.drones = 0
+        self.drones: int = 0
+        self.locked: tuple[str, Map.Zone] = []
         delta: int = 0
         '''
         delta denotes the y-axis offset caused by the weird negative index
@@ -234,14 +236,16 @@ class Map():
             if (int(z.coords[1]) + 1 > self.dimensions[1]):
                 self.dimensions[1] = int(z.coords[1]) + 1
 
-    def move(self, z1: "Map.Zone", z2: "Map.Zone", d: str):
+    def move(self, z1: "Map.Zone",
+             z2: "Map.Zone", d: str,):
         if (z1 in self.get_zones() and
             z2 in self.get_zones() and
             d in z1.drones and
                 z2.name in [c.dest.name for c in z1.get_connections()]):
             z1.drones.remove(d)
             z2.drones.append(d)
-            # print(f"Moved\t{d}\tfrom\t{z1.name}\tto\t{z2.name}")
+            # else:
+            #     m.locked.append(d, z2)
             print(f"{d}-{z2.name}")
         else:
             raise Exception(
@@ -249,12 +253,15 @@ class Map():
  not true:
             \t\tBoth zones are in the map
             \t\t'{d}' is in {z1.name}
-            \t\tThere is a connection from '{z1.name}' to '{z2.name}'\x1b\n[0m''')
+            \t\tThere is a connection from '{z1.name}'\
+to '{z2.name}'\x1b\n[0m''')
 
     def get_zones(self, only_occupied: bool = False) -> list["Map.Zone"]:
         if not only_occupied:
             return self._zones
         return [z for z in self.get_zones() if len(z.drones) > 0]
+
+    # def get_connection(self, o)
 
     def get_zone(self, name: str) -> "Map.Zone":
         found_zone = [z for z in self.get_zones() if z.name == name.lower()]
@@ -357,6 +364,15 @@ def next_turn(m: Map) -> tuple[int, int]:
         goal_zone: Map.Zone = m.get_zone("goal")
         if len(goal_zone.drones) == m.drones:
             return [move_count, 1]
+    # flushing locked drones entering into restricted zones
+    if (len(m.locked) > 0):
+        for d in m.locked:
+            if (d[1].available()):
+                m.move([z for z in m.get_zones() if d[0] in z.drones][0],
+                       d[1], d[0])
+                moved_drones.append(d[0])
+                move_count += 1
+    m.locked = []
     # as long as there have been moved drones keep checking if zones have been
     # unlocked making more moves are possible, same structure as bubble sort
     while (move_flag):
@@ -384,7 +400,19 @@ def next_turn(m: Map) -> tuple[int, int]:
                         (nxtzone.node(m), goal_zone.node(m))))
                     < hasPath(m.get_graph(),
                               (z.node(m), goal_zone.node(m)))
-                    and scount != -1]
+                    and scount != -1
+                    and nxtzone.type != "RESTRICTED"]
+                next_forward_restricted: Map.Zone = [
+                    nxtzone for nxtzone in z.possible_moves()
+                    if (step_count := hasPath(
+                        m.get_graph(),
+                        (nxtzone.node(m), goal_zone.node(m))))
+                    < hasPath(m.get_graph(),
+                              (z.node(m), goal_zone.node(m)))
+                    and
+                    step_count != -1
+                    and
+                    nxtzone.type == "RESTRICTED"]
                 if len(next_forward_priority) > 0 and d not in moved_drones:
                     m.move(z, next_forward_priority[0], d)
                     move_flag = True
@@ -392,6 +420,14 @@ def next_turn(m: Map) -> tuple[int, int]:
                     move_count += 1
                 if len(next_forward) > 0 and d not in moved_drones:
                     m.move(z, next_forward[0], d)
+                    move_flag = True
+                    moved_drones.append(d)
+                    move_count += 1
+                if len(next_forward_restricted) > 0 and d not in moved_drones:
+                    # m.move(z, next_forward_restricted[0], d)
+                    rdest: Map.Zone = next_forward_restricted[0]
+                    m.locked.append((d, rdest))
+                    print(f"{d}-{z.name}-{rdest.name}")
                     move_flag = True
                     moved_drones.append(d)
                     move_count += 1
