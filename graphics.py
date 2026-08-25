@@ -156,7 +156,8 @@ class Grid():
                     row.append(self.scaffolding)
                 elif (self.tr([c, r]) in
                       [z.coords for z in self.map.get_zones()]):
-                    row.append(" " * self.csize)
+                    color = [z for z in self.map.get_zones() if z.coords == self.tr([c, r])][0].color
+                    row.append(self.colors[color] + " " * self.csize)
                     self.raw_zones.append([c, r])
                     # print(f"{[self.tr([c,r])]} correlates to {[c,r]} ")
                 else:
