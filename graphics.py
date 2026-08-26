@@ -22,6 +22,7 @@ class Grid():
         'LIME': '\x1b[48;5;10m',
         'MAGENTA': '\x1b[45m',
         'GOLD': '\x1b[48;5;220m',
+        "NOT_FOUND": '',
         'BACKGROUND': (bg := '\x1b[90m'),
         'BG_BG': '\x1b[' + str(int(bg.split("[")[1][:-1]) + 10) + 'm',
         'END': '\x1b[0m'
@@ -157,7 +158,12 @@ class Grid():
                 elif (self.tr([c, r]) in
                       [z.coords for z in self.map.get_zones()]):
                     color = [z for z in self.map.get_zones() if z.coords == self.tr([c, r])][0].color
-                    row.append(self.colors[color] + " " * self.csize)
+                    zdrones = [len(z.drones) for z in self.map.get_zones() if z.coords == self.tr([c, r])][0]
+                    zdrones_digits = len(str(zdrones))
+                    if (color in self.colors.keys()):
+                        row.append(self.colors[color] + str(zdrones) + " " * (self.csize - zdrones_digits))
+                    else:
+                        row.append(self.colors["NOT_FOUND"] + str(zdrones) + " " * (self.csize - zdrones_digits))
                     self.raw_zones.append([c, r])
                     # print(f"{[self.tr([c,r])]} correlates to {[c,r]} ")
                 else:
