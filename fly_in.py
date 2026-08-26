@@ -463,6 +463,8 @@ if __name__ == "__main__":
     print(f"Map size: {m.dimensions}")
     g: graphics.Grid = graphics.Grid(m, 3, vpad=5, hpad=4)
     g.print_grid()
+    from time import sleep
+    sleep(1)
     print(m.show())
     hub = m.get_zone('start')
     print(hub.get_connections()[0])
@@ -473,6 +475,7 @@ if __name__ == "__main__":
     tmoves: int
     finished: int
     tmoves, finished = next_turn(m)
+    g.print_grid()
     total_moves: int = tmoves
     while (not finished):
         # breakpoint()
@@ -480,6 +483,9 @@ if __name__ == "__main__":
         tmoves, finished = next_turn(m)
         total_moves += tmoves
         turn += 1
+        g.print_grid()
+        sleep(1)
+        [print(z.drones) for z in m.get_zones()]
         if not tmoves and finished:
             print("\x1b[41mMAZE STUCK\x1b[0m")
     print(f"Total moves: {total_moves}")

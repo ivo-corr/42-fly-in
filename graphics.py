@@ -216,6 +216,11 @@ class Grid():
             return []
 
     def print_grid(self) -> None:
+        CLEAR_SCREEN: str = '\x1b[2J\x1b[H'
+        print(CLEAR_SCREEN)
+        self.ascii_grid = self.base_grid(
+            self.map.dimensions[1], self.map.dimensions[0],
+            self.vpad, hpad=self.hpad)
         for row in self.ascii_grid:
             for cell in row:
                 print(cell, end='')
