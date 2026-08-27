@@ -1,4 +1,5 @@
 import fly_in as fi
+from time import sleep
 
 
 def pr_grid(grid: list[list[str]]):
@@ -225,6 +226,9 @@ class Grid():
             for cell in row:
                 print(cell, end='')
             print()
+        print("0/R: run simulation\n1/N: next turn\n2/S: select map\n3/Q: quit")
+        # print("0/R: run\n1/N: next turn\n2/S: map select")
+        sleep(1)
 
 
 

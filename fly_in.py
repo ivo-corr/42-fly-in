@@ -1,4 +1,5 @@
-from enum import Enum, auto
+from enum import Enum
+from time import sleep
 import graphics
 import os
 
@@ -9,25 +10,6 @@ class Metadata(str, Enum):
     MAX_LINK_CAPACITY = "max_link_capacity"
     MAX_DRONES = "max_drones"
 
-
-class Color(Enum):
-    NONE = auto()
-    GREEN = auto()
-    RED = auto()
-    BLUE = auto()
-    ORANGE = auto()
-    YELLOW = auto()
-    CYAN = auto()
-    PURPLE = auto()
-    BROWN = auto()
-    LIME = auto()
-    MAGENTA = auto()
-    GOLD = auto()
-    BLACK = auto()
-    MAROON = auto()
-    DARKRED = auto()
-    CRIMSON = auto()
-    RAINBOW = auto()
 
 class ZoneType(Enum):
     NORMAL = 0
@@ -352,7 +334,6 @@ def next_turn(m: Map) -> tuple[int, int]:
         return next((x for x in [
             hasPath(xsf, (m, conn[1]), counter + 1)
             for (n, m) in xs if n == conn[0]] if x > 0), -1)
-
     move_count: int = 0
     moved_drones: list[str] = []
     move_flag: bool = True
@@ -373,7 +354,7 @@ def next_turn(m: Map) -> tuple[int, int]:
                 moved_drones.append(d[0])
                 move_count += 1
     m.locked = []
-    # as long as there have been moved drones keep checking if zones have been
+    # as long as there are moved drones keep checking if zones have been
     # unlocked making more moves are possible, same structure as bubble sort
     while (move_flag):
         move_flag = False
@@ -463,12 +444,9 @@ if __name__ == "__main__":
     print(f"Map size: {m.dimensions}")
     g: graphics.Grid = graphics.Grid(m, 3, vpad=5, hpad=4)
     g.print_grid()
-    from time import sleep
-    sleep(1)
-    print(m.show())
-    hub = m.get_zone('start')
-    print(hub.get_connections()[0])
-    print(hub.show())
+    cmd: str = input("## ")
+    if (cmd.upper() == 'Q'):
+        exit()
     turn: int = 0
     print(f"==== Turn {turn} ====")
     turn += 1
@@ -477,17 +455,21 @@ if __name__ == "__main__":
     tmoves, finished = next_turn(m)
     g.print_grid()
     total_moves: int = tmoves
-    while (not finished):
+    while (not finished and cmd ):
         # breakpoint()
+        if (cmd.upper() != '0' and cmd.upper() != 'R'):
+            cmd = input("## ")
+            if (cmd.upper() == 'Q'):
+                exit()
         print(f"==== Turn {turn} ====")
         tmoves, finished = next_turn(m)
         total_moves += tmoves
         turn += 1
         g.print_grid()
-        sleep(1)
-        [print(z.drones) for z in m.get_zones()]
+        # [print(z.drones) for z in m.get_zones()]
         if not tmoves and finished:
             print("\x1b[41mMAZE STUCK\x1b[0m")
-    print(f"Total moves: {total_moves}")
+        sleep(1)
+    print(f"\n\x1b[42mSimulation finished successfully!\x1b[0m\n\nTotal moves: {total_moves}")
     # except Exception as e:
     #     print(e)
