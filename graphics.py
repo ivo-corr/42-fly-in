@@ -216,7 +216,7 @@ class Grid():
         if direction == 1:
             return []
 
-    def print_grid(self) -> None:
+    def print_grid(self, msg: str) -> None:
         CLEAR_SCREEN: str = '\x1b[2J\x1b[H'
         print(CLEAR_SCREEN)
         self.ascii_grid = self.base_grid(
@@ -226,7 +226,7 @@ class Grid():
             for cell in row:
                 print(cell, end='')
             print()
-        print("0/R: run simulation\n1/N: next turn\n2/S: select map\n3/Q: quit")
+        print(msg)
         # print("0/R: run\n1/N: next turn\n2/S: map select")
         sleep(1)
 

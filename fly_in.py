@@ -228,7 +228,7 @@ class Map():
             z2.drones.append(d)
             # else:
             #     m.locked.append(d, z2)
-            print(f"{d}-{z2.name}")
+            return(f"{d}-{z2.name}")
         else:
             raise Exception(
                 f'''\x1b[43m\n\n\tMap.move ERROR:\n\n\tOne of the following is\
@@ -337,6 +337,7 @@ def next_turn(m: Map) -> tuple[int, int]:
     move_count: int = 0
     moved_drones: list[str] = []
     move_flag: bool = True
+    tdata: list[str] = []
     if (m.get_zone("impossible_goal")):
         goal_zone: Map.Zone = m.get_zone("impossible_goal")
         if len(m.get_zone("impossible_goal").drones) == m.drones:
@@ -349,8 +350,8 @@ def next_turn(m: Map) -> tuple[int, int]:
     if (len(m.locked) > 0):
         for d in m.locked:
             if (d[1].available()):
-                m.move([z for z in m.get_zones() if d[0] in z.drones][0],
-                       d[1], d[0])
+                tdata.append(m.move([z for z in m.get_zones() if d[0] in z.drones][0],
+                       d[1], d[0]))
                 moved_drones.append(d[0])
                 move_count += 1
     m.locked = []
@@ -395,12 +396,12 @@ def next_turn(m: Map) -> tuple[int, int]:
                     and
                     nxtzone.type == "RESTRICTED"]
                 if len(next_forward_priority) > 0 and d not in moved_drones:
-                    m.move(z, next_forward_priority[0], d)
+                    tdata.append(m.move(z, next_forward_priority[0], d))
                     move_flag = True
                     moved_drones.append(d)
                     move_count += 1
                 if len(next_forward) > 0 and d not in moved_drones:
-                    m.move(z, next_forward[0], d)
+                    tdata.append(m.move(z, next_forward[0], d))
                     move_flag = True
                     moved_drones.append(d)
                     move_count += 1
@@ -408,7 +409,7 @@ def next_turn(m: Map) -> tuple[int, int]:
                     # m.move(z, next_forward_restricted[0], d)
                     rdest: Map.Zone = next_forward_restricted[0]
                     m.locked.append((d, rdest))
-                    print(f"{d}-{z.name}-{rdest.name}")
+                    tdata.append(f"{d}-{z.name}-{rdest.name}")
                     move_flag = True
                     moved_drones.append(d)
                     move_count += 1
@@ -417,13 +418,19 @@ def next_turn(m: Map) -> tuple[int, int]:
     #       f"{[z.name for z in m.get_zones(only_occupied=True)]}")
     print(f"Number of moves in this turn: {move_count}")
     if len(goal_zone.drones) == m.drones:
-        return [move_count, 1]
+        return [move_count, 1, tdata]
     if (move_count == 0):
-        return [move_count, 1]
-    return [move_count, 0]
+        return [move_count, 1, tdata]
+    return [move_count, 0, tdata]
 
 
 if __name__ == "__main__":
+    def prompt():
+        cmd: str = input("\n## ")
+        if (cmd.upper() == 'Q'):
+            exit()
+        if (cmd.upper() == 'S'):
+            return "S"
     CLEAR_SCREEN: str = '\x1b[2J\x1b[H'
     TITLE: str = '''
 ███████╗██╗  ██╗   ██╗       ██╗███╗   ██╗
@@ -438,38 +445,57 @@ if __name__ == "__main__":
     pconfig: str = select_map()
     # try:
     m: Map = Map(pconfig)
-    # [print(z.show(0)) for z in m.get_zones()]
-    print(m.get_graph())
-    # breakpoint()
     print(f"Map size: {m.dimensions}")
     g: graphics.Grid = graphics.Grid(m, 3, vpad=5, hpad=4)
-    g.print_grid()
-    cmd: str = input("## ")
-    if (cmd.upper() == 'Q'):
-        exit()
+    msg = "\nR: run simulation\nN: next turn\nS: select map\nQ: quit"
+    g.print_grid(msg)
+    cmd: str = prompt()
     turn: int = 0
-    print(f"==== Turn {turn} ====")
-    turn += 1
-    tmoves: int
     finished: int
-    tmoves, finished = next_turn(m)
-    g.print_grid()
-    total_moves: int = tmoves
-    while (not finished and cmd ):
-        # breakpoint()
-        if (cmd.upper() != '0' and cmd.upper() != 'R'):
-            cmd = input("## ")
-            if (cmd.upper() == 'Q'):
-                exit()
+    tdata: list[str]
+    output_f: str = ""
+    while (True):
+        tmoves, finished, tdata = next_turn(m)
+        for d in tdata:
+            output_f += " ".join(tdata) + '\n'
+        g.print_grid(msg + '\n\n' + '\n'.join(tdata))
+        cmd = prompt()
+        if (finished):
+            break
         print(f"==== Turn {turn} ====")
-        tmoves, finished = next_turn(m)
-        total_moves += tmoves
-        turn += 1
-        g.print_grid()
-        # [print(z.drones) for z in m.get_zones()]
-        if not tmoves and finished:
-            print("\x1b[41mMAZE STUCK\x1b[0m")
-        sleep(1)
-    print(f"\n\x1b[42mSimulation finished successfully!\x1b[0m\n\nTotal moves: {total_moves}")
+    with open("output.txt", 'w') as file:
+        file.write(output_f)
+    # turn: int = 0
+    # print(f"==== Turn {turn} ====")
+    # turn += 1
+    # tmoves: int
+    # finished: int
+    # tmoves, finished = next_turn(m)
+    # g.print_grid("")
+    # total_moves: int = tmoves
+    # while (not finished and cmd ):
+    #     # breakpoint()
+    #     if (cmd.upper() != '0' and cmd.upper() != 'R'):
+    #         cmd = input("## ")
+    #         if (cmd.upper() == 'Q'):
+    #             exit()
+    #     if (cmd.upper() == 'S'):
+    #         pconfig: str = select_map()
+    #         m: Map = Map(pconfig)
+    #         turn = 0
+    #         g = graphics.Grid(m, 3, vpad=5, hpad=4)
+    #         g.print_grid("")
+    #         cmd = input("## ")
+
+    #     print(f"==== Turn {turn} ====")
+    #     tmoves, finished = next_turn(m)
+    #     total_moves += tmoves
+    #     turn += 1
+    #     g.print_grid("")
+    #     # [print(z.drones) for z in m.get_zones()]
+    #     if not tmoves and finished:
+    #         print("\x1b[41mMAZE STUCK\x1b[0m")
+    #     sleep(1)
+    print(f"\n\x1b[42m\x1b[30mSimulation finished successfully!\x1b[0m\n\nStats:")
     # except Exception as e:
     #     print(e)
