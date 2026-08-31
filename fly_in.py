@@ -8,6 +8,7 @@ import os
 class InputFileError(Exception):
     def __init__(self, line: str, line_nr: int, Message: str | None = None):
         self.line_nr = line_nr
+        self.line = line
         if Message is None:
             Message = f'Error in line {line_nr}'
         super().__init__(Message)
@@ -282,8 +283,18 @@ def parse_config(file: str):
     def validate_hub(line: str, line_nr: int):
         splat: list[str] = line.split(": ")
         if len(splat) < 2:
-            raise InputFileError(line, cline_nr, "Missing semicolon")
-    
+            raise InputFileError(line, line_nr, "Missing semicolon")
+        breakpoint()
+        if ('-' in splat[0] or ' ' in splat[0]):
+            raise InputFileError(line, line_nr, "Zone names must not contain"
+                                 " dashes or spaces")
+        try:
+            int(splat[1].split(' ')[1])
+            int(splat[1].split(' ')[2])
+        except ValueError:
+            raise InputFileError(line, line_nr, "Zone coordinates must "
+                                 "be integers")
+
     def validate_connection(line: str):
         return True
     result: list[list[str] | list[list[list[str]]]] = []
@@ -306,13 +317,14 @@ def parse_config(file: str):
                         cline,
                         cline_nr,
                         Message='nb_drones must be assigned a positive ' +
-                        f'integer:\n\t{cline}')
+                        'integer')
 
                 if (int(result[i][1]) < 1):
                     raise InputFileError(
-                        1,
+                        cline,
+                        cline_nr,
                         Message='nb_drones must be assigned a positive ' +
-                        f'integer:\n\t\'{cline}\'')
+                        'integer')
         if 'hub' in result[i][0]:
             if (not validate_hub(cline, cline_nr)):
                 pass
@@ -368,7 +380,8 @@ def select_map() -> str | None:
         try:
             pconfig: str = parse_config(file.read())
         except InputFileError as e:
-            print(f"\x1b[43mInputFileError:{e}:\n\tLine {}\x1b[0m")
+            print(f"\x1b[43mInputFileError:\n{e}\n"
+                  f"(Line {e.line_nr}): \'{e.line}\'\x1b[0m")
             return None
     return pconfig
 
