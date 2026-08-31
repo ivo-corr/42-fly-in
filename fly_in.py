@@ -1,7 +1,16 @@
 from enum import Enum
 from time import sleep
+from pydantic import BaseModel
 import graphics
 import os
+
+
+class InputFileError(Exception):
+    def __init__(self, line_nr: int, Message: str | None = None):
+        self.line_nr = line_nr
+        if Message is None:
+            Message = f'Error in line {line_nr}'
+        super().__init__(Message)
 
 
 class Metadata(str, Enum):
@@ -270,16 +279,39 @@ Zones: {[z.name for z in self.get_zones()]}
 
 
 def parse_config(file: str):
+
+    def validate(data: str, line: int):
+        pass
     result: list[list[str] | list[list[list[str]]]] = []
     splat: list[str] = file.split("\n")
     splat = [s for s in splat if not s.startswith("#")]
     result.extend(
         [[s[0], s[1]] for s in
          [ss.split(": ") for ss in splat if len(ss.split(": ")) == 2]])
+    for i in range(len(result)):
+        if (i == 0):
+            if (result[i][0] == 'nb_drones'):
+                try:
+                    int(result[i][1])
+                except ValueError:
+                    raise InputFileError(1, Message='nb_drones must be assigned a positiveinteger.')
+                if (int(result[i][1]) < 1):
+                    raise InputFileError(1, Message='nb_drones must be assigned a positive integer.')
+            sh_count: int = 0
+            eh_count: int = 0
+            for r in result:
+                if r[0] == 'start_hub':
+                    sh_count += 1
+                    if (sh_count > 1):
+                        raise InputFileError(
+                            file.split("\n").index(r[0]+': '+r[1]) + 1,
+                            Message='There must be exactly one \'start_hub\'')
+                if r[0] == 'end_hub':
+                    eh_count += 1
     return (result)
 
 
-def select_map() -> str:
+def select_map() -> str | None:
     print(CLEAR_SCREEN)
     print('\x1b[36m'+TITLE+'\x1b[0m')
     print("\x1b[42m\n")
@@ -311,7 +343,11 @@ def select_map() -> str:
         select_map()
     with open('maps/'+[m[1] for m in file_index if m[0] == choice][0]) as file:
         print('\x1b[0m')
-        pconfig: str = parse_config(file.read())
+        try:
+            pconfig: str = parse_config(file.read())
+        except InputFileError as e:
+            print(f"\x1b[43mInputFileError: (line {e.line_nr}): {e}\x1b[0m")
+            return None
     return pconfig
 
 
@@ -431,6 +467,7 @@ if __name__ == "__main__":
             exit()
         if (cmd.upper() == 'S'):
             return "S"
+        return cmd.upper()
     CLEAR_SCREEN: str = '\x1b[2J\x1b[H'
     TITLE: str = '''
 ███████╗██╗  ██╗   ██╗       ██╗███╗   ██╗
@@ -443,6 +480,8 @@ if __name__ == "__main__":
 
     # print('\x1b[94m'+TITLE+'\x1b[0m')
     pconfig: str = select_map()
+    if pconfig is None:
+        exit(-1)
     # try:
     m: Map = Map(pconfig)
     print(f"Map size: {m.dimensions}")
@@ -458,11 +497,15 @@ if __name__ == "__main__":
         tmoves, finished, tdata = next_turn(m)
         for d in tdata:
             output_f += " ".join(tdata) + '\n'
-        g.print_grid(msg + '\n\n' + '\n'.join(tdata))
-        cmd = prompt()
+        g = graphics.Grid(m, 3, vpad=5, hpad=4)
+        g.print_grid(
+            msg + f'\n\n─── Turn {turn} ───\n' + '\n'.join(tdata) +
+            '\n──────────────')
+        if (cmd != 'R'):
+            cmd = prompt()
         if (finished):
             break
-        print(f"==== Turn {turn} ====")
+        turn += 1
     with open("output.txt", 'w') as file:
         file.write(output_f)
     # turn: int = 0
@@ -496,6 +539,7 @@ if __name__ == "__main__":
     #     if not tmoves and finished:
     #         print("\x1b[41mMAZE STUCK\x1b[0m")
     #     sleep(1)
-    print(f"\n\x1b[42m\x1b[30mSimulation finished successfully!\x1b[0m\n\nStats:")
+    print(f"\n\x1b[42m\x1b[30mSimulation finished successfully!\x1b[0m\n")
+    print(f"Total number of turns: {turn+1}")
     # except Exception as e:
     #     print(e)

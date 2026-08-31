@@ -14,6 +14,13 @@ nodes = [(100, 100), (200, 100), (300, 100), (400, 100), (500, 100)]
 # define which nodes connect to which (by index)
 edges = [(0, 1), (1, 2), (0, 3), (2, 4), (3, 4)]
 
+# --- Runner setup (small circle traveling along the edges) ---
+runner_radius = 6
+runner_color = (255, 180, 60)
+runner_edge_idx = 0
+runner_t = 0.0          # 0.0 -> 1.0 progress along the current edge
+runner_speed = 0.02     # fraction of the edge covered per frame
+
 # --- Button setup ---
 class Button:
     def __init__(self, rect, label, callback):
@@ -68,6 +75,18 @@ while running:
         for b in buttons:
             b.handle_event(event)
 
+    # --- update runner position ---
+    runner_t += runner_speed
+    if runner_t >= 1.0:
+        runner_t = 0.0
+        runner_edge_idx = (runner_edge_idx + 1) % len(edges)
+
+    a_idx, b_idx = edges[runner_edge_idx]
+    ax, ay = nodes[a_idx]
+    bx, by = nodes[b_idx]
+    runner_x = ax + (bx - ax) * runner_t
+    runner_y = ay + (by - ay) * runner_t
+
     screen.fill((20, 20, 20))
 
     # draw lines first so circles sit on top
@@ -77,6 +96,9 @@ while running:
     # draw circles
     for pos in nodes:
         pygame.draw.circle(screen, (200, 200, 255), pos, 15)
+
+    # draw the runner on top
+    pygame.draw.circle(screen, runner_color, (int(runner_x), int(runner_y)), runner_radius)
 
     # --- draw bottom panel ---
     pygame.draw.rect(screen, (35, 35, 45), (0, panel_y, WIDTH, PANEL_HEIGHT))
