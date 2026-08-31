@@ -6,7 +6,7 @@ import os
 
 
 class InputFileError(Exception):
-    def __init__(self, line_nr: int, Message: str | None = None):
+    def __init__(self, line: str, line_nr: int, Message: str | None = None):
         self.line_nr = line_nr
         if Message is None:
             Message = f'Error in line {line_nr}'
@@ -279,35 +279,57 @@ Zones: {[z.name for z in self.get_zones()]}
 
 
 def parse_config(file: str):
-
-    def validate(data: str, line: int):
-        pass
+    def validate_hub(line: str, line_nr: int):
+        splat: list[str] = line.split(": ")
+        if len(splat) < 2:
+            raise InputFileError(line, cline_nr, "Missing semicolon")
+    
+    def validate_connection(line: str):
+        return True
     result: list[list[str] | list[list[list[str]]]] = []
     splat: list[str] = file.split("\n")
     splat = [s for s in splat if not s.startswith("#")]
     result.extend(
         [[s[0], s[1]] for s in
          [ss.split(": ") for ss in splat if len(ss.split(": ")) == 2]])
+    sh_count: int = 0
+    eh_count: int = 0
     for i in range(len(result)):
+        cline: str = result[i][0] + ': ' + result[i][1]
+        cline_nr: int = file.split("\n").index(cline) + 1
         if (i == 0):
             if (result[i][0] == 'nb_drones'):
                 try:
                     int(result[i][1])
                 except ValueError:
-                    raise InputFileError(1, Message='nb_drones must be assigned a positiveinteger.')
+                    raise InputFileError(
+                        cline,
+                        cline_nr,
+                        Message='nb_drones must be assigned a positive ' +
+                        f'integer:\n\t{cline}')
+
                 if (int(result[i][1]) < 1):
-                    raise InputFileError(1, Message='nb_drones must be assigned a positive integer.')
-            sh_count: int = 0
-            eh_count: int = 0
-            for r in result:
-                if r[0] == 'start_hub':
-                    sh_count += 1
-                    if (sh_count > 1):
-                        raise InputFileError(
-                            file.split("\n").index(r[0]+': '+r[1]) + 1,
-                            Message='There must be exactly one \'start_hub\'')
-                if r[0] == 'end_hub':
-                    eh_count += 1
+                    raise InputFileError(
+                        1,
+                        Message='nb_drones must be assigned a positive ' +
+                        f'integer:\n\t\'{cline}\'')
+        if 'hub' in result[i][0]:
+            if (not validate_hub(cline, cline_nr)):
+                pass
+        if result[i][0] == 'start_hub':
+            sh_count += 1
+            if (sh_count > 1):
+                raise InputFileError(
+                    cline_nr,
+                    Message='There must be exactly one \'start_hub\':' +
+                    f'\n\'{cline}\'')
+        if result[i][0] == 'end_hub':
+            eh_count += 1
+            if (eh_count > 1):
+                raise InputFileError(
+                    file.split("\n").index(cline) + 1,
+                    Message='There must be exactly one \'end_hub\':' +
+                    f'\n\'{cline}\'')
     return (result)
 
 
@@ -346,7 +368,7 @@ def select_map() -> str | None:
         try:
             pconfig: str = parse_config(file.read())
         except InputFileError as e:
-            print(f"\x1b[43mInputFileError: (line {e.line_nr}): {e}\x1b[0m")
+            print(f"\x1b[43mInputFileError:{e}:\n\tLine {}\x1b[0m")
             return None
     return pconfig
 
