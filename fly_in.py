@@ -6,11 +6,18 @@ import os
 
 
 class InputFileError(Exception):
-    def __init__(self, line: str, line_nr: int, Message: str | None = None):
+    def __init__(self, line: str, line_nr: int, Message: str | None = None) -> None:
         self.line_nr = line_nr
         self.line = line
         if Message is None:
-            Message = f'Error in line {line_nr}'
+            Message = f'Error in line {line_nr}: \'{line}\''
+        super().__init__(Message)
+
+
+class SemanticError(Exception):
+    def __init__(self, Message: str | None = None) -> None:
+        if Message is None:
+            Message = f'Error in line {line_nr}: \'{line}\''
         super().__init__(Message)
 
 
@@ -227,6 +234,14 @@ class Map():
                 self.dimensions[0] = int(z.coords[0]) + 1
             if (int(z.coords[1]) + 1 > self.dimensions[1]):
                 self.dimensions[1] = int(z.coords[1]) + 1
+        if (self.drones > [z for z in self._zones 
+                           if z.name == 'start'][0].capacity):
+            raise SemanticError("The start zone has a capacity below "
+                                "the number of drones in the circuit")
+        if (self.drones > [z for z in self._zones 
+                           if z.name == 'goal'][0].capacity):
+            raise SemanticError("The end zone has a capacity below "
+                                "the number of drones in the circuit")
 
     def move(self, z1: "Map.Zone",
              z2: "Map.Zone", d: str,):
@@ -284,7 +299,6 @@ def parse_config(file: str):
         splat: list[str] = line.split(": ")
         if len(splat) < 2:
             raise InputFileError(line, line_nr, "Missing semicolon")
-        breakpoint()
         if ('-' in splat[0] or ' ' in splat[0]):
             raise InputFileError(line, line_nr, "Zone names must not contain"
                                  " dashes or spaces")
@@ -326,22 +340,22 @@ def parse_config(file: str):
                         Message='nb_drones must be assigned a positive ' +
                         'integer')
         if 'hub' in result[i][0]:
-            if (not validate_hub(cline, cline_nr)):
-                pass
+            validate_hub(cline, cline_nr)
         if result[i][0] == 'start_hub':
             sh_count += 1
-            if (sh_count > 1):
-                raise InputFileError(
-                    cline_nr,
-                    Message='There must be exactly one \'start_hub\':' +
-                    f'\n\'{cline}\'')
         if result[i][0] == 'end_hub':
             eh_count += 1
-            if (eh_count > 1):
-                raise InputFileError(
-                    file.split("\n").index(cline) + 1,
-                    Message='There must be exactly one \'end_hub\':' +
-                    f'\n\'{cline}\'')
+    if (sh_count != 1):
+        raise InputFileError(
+            cline,
+            cline_nr,
+            Message='There must be exactly one \'start_hub\':' +
+            f'\n\'{cline}\'')
+    if (eh_count > 1):
+        raise InputFileError(
+            file.split("\n").index(cline) + 1,
+            Message='There must be exactly one \'end_hub\':' +
+            f'\n\'{cline}\'')
     return (result)
 
 
@@ -517,8 +531,11 @@ if __name__ == "__main__":
     pconfig: str = select_map()
     if pconfig is None:
         exit(-1)
-    # try:
-    m: Map = Map(pconfig)
+    try:
+        m: Map = Map(pconfig)
+    except SemanticError as e:
+        print(f"\x1b[43mSemanticError:\n{e}\n")
+        exit()
     print(f"Map size: {m.dimensions}")
     g: graphics.Grid = graphics.Grid(m, 3, vpad=5, hpad=4)
     msg = "\nR: run simulation\nN: next turn\nS: select map\nQ: quit"
