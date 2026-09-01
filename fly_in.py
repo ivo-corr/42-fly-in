@@ -60,11 +60,13 @@ class Map():
             def show(self):
                 return f"{self.orig.name} <=> {self.dest.name}"
 
-        def __init__(self, name: str, coords: tuple[str, str] | list[str],
+        def __init__(self, name: str, if_name: str,
+                     coords: tuple[str, str] | list[str],
                      type: ZoneType = ZoneType.NORMAL,
                      color: str = "NONE",
                      capacity: int = -1,
                      drones: int = 0):
+            self.if_name: str = if_name
             self.name: str = name
             self.coords: tuple[int, int] | list[int] = [int(x) for x in coords]
             self.type = type
@@ -169,6 +171,7 @@ class Map():
                     self._zones.append(
                         Map.Zone(
                             name := c[1].split(" ")[0],
+                            c[0],
                             tmp := [
                                 c[1].split(" ")[1], '0' if
                                 absolute > delta else
@@ -198,6 +201,7 @@ class Map():
                             else zsplit.split("]")[0]
                     self._zones.append(
                         Map.Zone(name := c[1].split(" ")[0],
+                                 c[0],
                                  tmp,
                                  color=color,
                                  capacity=int(drones_md)
@@ -235,13 +239,15 @@ class Map():
             if (int(z.coords[1]) + 1 > self.dimensions[1]):
                 self.dimensions[1] = int(z.coords[1]) + 1
         if (self.drones > [z for z in self._zones 
-                           if z.name == 'start'][0].capacity):
-            raise SemanticError("The start zone has a capacity below "
-                                "the number of drones in the circuit")
+                           if z.if_name == 'start_hub'][0].capacity):
+            raise SemanticError("The capacity of the start zone"
+                                " can't be lower than the number of drones in "
+                                "the circuit")
         if (self.drones > [z for z in self._zones 
-                           if z.name == 'goal'][0].capacity):
-            raise SemanticError("The end zone has a capacity below "
-                                "the number of drones in the circuit")
+                           if z.if_name == 'end_hub'][0].capacity):
+            raise SemanticError("The capacity of the end zone"
+                                " can't be lower than the number of drones in "
+                                "the circuit")
 
     def move(self, z1: "Map.Zone",
              z2: "Map.Zone", d: str,):
