@@ -1,12 +1,13 @@
 from enum import Enum
 from time import sleep
-from pydantic import BaseModel
 import graphics
 import os
 
 
 class InputFileError(Exception):
-    def __init__(self, line: str, line_nr: int, Message: str | None = None) -> None:
+    def __init__(self, line: str | list[str] | None = None,
+                 line_nr: int | list[int] | None = None,
+                 Message: str | None = None) -> None:
         self.line_nr = line_nr
         self.line = line
         if Message is None:
@@ -362,6 +363,21 @@ def parse_config(file: str):
             file.split("\n").index(cline) + 1,
             Message='There must be exactly one \'end_hub\':' +
             f'\n\'{cline}\'')
+    for i in range(1, len(result)):
+        for r in result[i+1:]:
+            n1: str = result[i][1].split(' ')[0]
+            n2: str = r[1].split(' ')[0]
+            if n1 == n2:
+                breakpoint()
+                lst: list[str] = file.split('\n')
+                lines: list[str] = [
+                    [li, lst.index(li) + 1]
+                    for li in file.split('\n')
+                    if (' ' + n1 + ' ') in li or (' ' + n1 + '') in li]
+                raise InputFileError(
+                    lines[0][0],
+                    lines[0][1],
+                    Message="Zone names and Connection names must be unique")
     return (result)
 
 
@@ -400,8 +416,11 @@ def select_map() -> str | None:
         try:
             pconfig: str = parse_config(file.read())
         except InputFileError as e:
-            print(f"\x1b[43mInputFileError:\n{e}\n"
-                  f"(Line {e.line_nr}): \'{e.line}\'\x1b[0m")
+            if e.line is not None:
+                print(f"\x1b[43mInputFileError:\n{e}\n"
+                      f"(Line {e.line_nr}): \'{e.line}\'\x1b[0m")
+            else:
+                print(f"\x1b[43mInputFileError:\n{e}")
             return None
     return pconfig
 
