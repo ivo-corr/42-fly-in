@@ -140,6 +140,7 @@ class Map():
             meta: list[list[str]] = [
                 [md.lower()] for md in Metadata.__members__ if
                 md.lower() in c[1]]
+            # breakpoint()
             if ("nb_drones" in c[0]):
                 self.drones = int(c[1])
             if ('hub' in c[0]):
@@ -239,13 +240,15 @@ class Map():
                 self.dimensions[0] = int(z.coords[0]) + 1
             if (int(z.coords[1]) + 1 > self.dimensions[1]):
                 self.dimensions[1] = int(z.coords[1]) + 1
-        if (self.drones > [z for z in self._zones 
-                           if z.if_name == 'start_hub'][0].capacity):
+        if (self.drones > (cap := [z for z in self._zones
+                           if z.if_name == 'start_hub'][0].capacity)
+                and cap > -1):
             raise SemanticError("The capacity of the start zone"
                                 " can't be lower than the number of drones in "
                                 "the circuit")
-        if (self.drones > [z for z in self._zones 
-                           if z.if_name == 'end_hub'][0].capacity):
+        if (self.drones > (cap := [z for z in self._zones 
+                           if z.if_name == 'end_hub'][0].capacity)
+                and cap > -1):
             raise SemanticError("The capacity of the end zone"
                                 " can't be lower than the number of drones in "
                                 "the circuit")
@@ -260,7 +263,7 @@ class Map():
             z2.drones.append(d)
             # else:
             #     m.locked.append(d, z2)
-            return(f"{d}-{z2.name}")
+            return (f"{d}-{z2.name}")
         else:
             raise Exception(
                 f'''\x1b[43m\n\n\tMap.move ERROR:\n\n\tOne of the following is\
@@ -316,14 +319,33 @@ def parse_config(file: str):
             raise InputFileError(line, line_nr, "Zone coordinates must "
                                  "be integers")
 
-    def validate_connection(line: str):
-        return True
+    def validate_connection(line: str, line_nr: int, conns: list[str]):
+        conn: str = line.split(": ")[1].split(" [")[0]
+        src: str
+        dst: str
+        src, dst = conn.split('-')
+        converse_conn: str = dst + '-' + src
+        count = 0
+        breakpoint()
+        if count > 1:
+            raise InputFileError(
+                line, line_nr, Message="There must not be any "
+                "duplicate connections"
+            )
+
     result: list[list[str] | list[list[list[str]]]] = []
     splat: list[str] = file.split("\n")
     splat = [s for s in splat if not s.startswith("#")]
     result.extend(
         [[s[0], s[1]] for s in
          [ss.split(": ") for ss in splat if len(ss.split(": ")) == 2]])
+    if result[0][0] != 'nb_drones':
+        raise InputFileError(
+            [li for li in splat if result[0][0] in li][0],
+            0,
+            Message="The first line of the input file must specify the "
+            "number of drones in the circuit: 'nb_drones: <int>'"
+        )
     sh_count: int = 0
     eh_count: int = 0
     for i in range(len(result)):
@@ -348,6 +370,10 @@ def parse_config(file: str):
                         'integer')
         if 'hub' in result[i][0]:
             validate_hub(cline, cline_nr)
+        if 'connection' in result[i][0]:
+            validate_connection(cline,
+                                cline_nr,
+                                [cs for cs in result if cs[0] == 'connection'])
         if result[i][0] == 'start_hub':
             sh_count += 1
         if result[i][0] == 'end_hub':
@@ -368,7 +394,6 @@ def parse_config(file: str):
             n1: str = result[i][1].split(' ')[0]
             n2: str = r[1].split(' ')[0]
             if n1 == n2:
-                breakpoint()
                 lst: list[str] = file.split('\n')
                 lines: list[str] = [
                     [li, lst.index(li) + 1]
@@ -377,7 +402,19 @@ def parse_config(file: str):
                 raise InputFileError(
                     lines[0][0],
                     lines[0][1],
-                    Message="Zone names and Connection names must be unique")
+                    Message="Zone names and connections must be unique")
+            c1: list[str] = result[i][1].split(' ')[1:3]
+            c2: list[str] = r[1].split(' ')[1:3]
+            if c1 and c1 == c2:
+                lst: list[str] = file.split('\n')
+                lines: list[str] = [
+                    [li, lst.index(li) + 1]
+                    for li in file.split('\n')
+                    if (' ' + n1 + ' ') in li or (' ' + n1 + '') in li]
+                raise InputFileError(
+                    lines[0][0],
+                    lines[0][1],
+                    Message="Zones must have different coordinates")
     return (result)
 
 
