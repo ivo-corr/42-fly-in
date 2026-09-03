@@ -254,13 +254,17 @@ class Map():
                                 "the circuit")
 
     def move(self, z1: "Map.Zone",
-             z2: "Map.Zone", d: str,):
+             z2: "Map.Zone", d: str,
+             animation: bool = True):
         if (z1 in self.get_zones() and
             z2 in self.get_zones() and
             d in z1.drones and
                 z2.name in [c.dest.name for c in z1.get_connections()]):
             z1.drones.remove(d)
             z2.drones.append(d)
+            if (animation):
+                pass
+                # g.rmove(g.ascii_grid, [z1.coords, z2.coords])
             # else:
             #     m.locked.append(d, z2)
             return (f"{d}-{z2.name}")
@@ -413,12 +417,13 @@ def parse_config(file: str):
                     Message="Zone names and connections must be unique")
             c1: list[str] = result[i][1].split(' ')[1:3]
             c2: list[str] = r[1].split(' ')[1:3]
-            if c1 and c1 == c2:
+            if c1 and c1 == c2 and not c1[0].startswith("["):
                 lst: list[str] = file.split('\n')
                 lines: list[str] = [
                     [li, lst.index(li) + 1]
                     for li in file.split('\n')
                     if (' ' + n1 + ' ') in li or (' ' + n1 + '') in li]
+                breakpoint()
                 raise InputFileError(
                     lines[0][0],
                     lines[0][1],

@@ -39,9 +39,9 @@ class Grid():
                 c for c in [z.get_connections() for z in self.zones]
                 ]] for element in sublist]
         # we select only the connections that need to be rendered
-        self.connections = list(
-            filter(lambda x: x.dest.coords[0] > x.orig.coords[0],
-                   self.connections))
+        # self.connections = list(
+        #     filter(lambda x: x.dest.coords[0] > x.orig.coords[0],
+        #            self.connections))
         self.raw_zones: list[list[int]] = []
         self.raw_connections: list[list[list[int]]] = []
         # we translate each connection to a set of coordinates
@@ -62,55 +62,55 @@ class Grid():
         self.ascii_grid: list[list[str]] = self.base_grid(
             self.map.dimensions[1], self.map.dimensions[0],
             self.vpad, hpad=self.hpad)
-        self.connect_grid()
+
+    def rmove(self, map: list[list[str]], conn: list[list[int]], delay: float = 0.5):
+        delta_x: int = conn[1][0] - conn[0][0]
+        delta_y: int = conn[1][1] - conn[0][1]
+        breakpoint()
+        trconn: list[list[int]] = [tr(conn[0]), tr(conn[1])]
+        if delta_x == 0 and delta_y == 0:
+            return True
+        if delta_x > 0:
+            if ' ' not in map[conn[0][1]][conn[0][0]]:
+                map[conn[0][1]][conn[0][0]] = 'x'
+                prev: str = map[conn[0][1] - 1][conn[0][0]]
+                if (' ' not in prev):
+                    map[conn[0][1] - 1][conn[0][0]] = (self.colors['BACKGROUND'] + self.colors['BG_BG'] + '█' * (self.csize // 2)) + '▫️' + ('█' * (self.csize // 2)) + self.colors['END']
+            self.print_grid("")
+            sleep(delay)
+            self.rmove(map, [[conn[0][0] + 1, conn[0][1]], conn[1]])
+        if delta_x == 0 and delta_y != 0:
+            if ' ' not in map[conn[0][1]][conn[0][0]]:
+                map[conn[0][1]][conn[0][0]] = (self.colors['BACKGROUND'] + self.colors['BG_BG'] + '█' * (self.csize // 2)) + '▫️' + ('█' * (self.csize // 2)) + self.colors['END']
+            self.print_grid("")
+            sleep(delay)
+            if delta_y > 0:
+                self.rmove(map, [[conn[0][0], conn[0][1] + 1], conn[1]])
+            elif delta_y < 0:
+                self.rmove(map, [[conn[0][0], conn[0][1] - 1], conn[1]])
 
     def connect_grid(self):
-        connectors: dict[str] = {'horizontal': f"{self.colors['BG_BG']}─"
-                                 f"{self.colors['END']}",
-                                 'vertical':  f"{self.colors['BG_BG']}│"
-                                 f"{self.colors['END']}",
-                                 'tl_edge': f"{self.colors['BG_BG']}┌"
-                                 f"{self.colors['END']}",
-                                 'tr_edge': f"{self.colors['BG_BG']}┐"
-                                 f"{self.colors['END']}",
-                                 'bl_edge': f"{self.colors['BG_BG']}└"
-                                 f"{self.colors['END']}",
-                                 'br_edge': f"{self.colors['BG_BG']}┘"
-                                 f"{self.colors['END']}",
-                                 'lud_junction': f"{self.colors['BG_BG']}┤"
-                                 f"{self.colors['END']}"}
-
-        def rconnect(map: list[list[str]], conn: list[list[int]]):
+        def rconnect(map: list[list[str]], conn: list[list[int]], delay: int = 0):
             delta_x: int = conn[1][0] - conn[0][0]
             delta_y: int = conn[1][1] - conn[0][1]
-            if (delta_x == 0 and delta_y == 0):
+            if delta_x == 0 and delta_y == 0:
                 return True
-            if (delta_x == 0 and delta_y != 0):
-                print("Now we should draw y axis")
-                if (delta_y > 0):
-                    if (any([c in map[conn[0][0]][conn[0][1]]
-                             for c in list(connectors.values())])):
-                        # breakpoint()
-                        print("we have a split path!")
-                    else:
-                        breakpoint()
-                        map[conn[0][1]][conn[0][0]] = ''+\
-                            ('█' * (self.csize // 2)) + (self.colors['RED'] + connectors['vertical'] + self.colors['END'] + self.colors['BACKGROUND'] + ('█' * (self.csize // 2))) + self.colors['END']
+            if delta_x > 0:
+                if ' ' not in map[conn[0][1]][conn[0][0]]:
+                    map[conn[0][1]][conn[0][0]] = (self.colors['BACKGROUND'] + self.colors['BG_BG'] + '█' * (self.csize // 2)) + '▫️' + ('█' * (self.csize // 2)) + self.colors['END']
+                sleep(delay)
+                rconnect(map, [[conn[0][0] + 1, conn[0][1]], conn[1]])
+            if delta_x == 0 and delta_y != 0:
+                if ' ' not in map[conn[0][1]][conn[0][0]]:
+                    map[conn[0][1]][conn[0][0]] = (self.colors['BACKGROUND'] + self.colors['BG_BG'] + '█' * (self.csize // 2)) + '▫️' + ('█' * (self.csize // 2)) + self.colors['END']
+                sleep(delay)
+                if delta_y > 0:
+                    rconnect(map, [[conn[0][0], conn[0][1] + 1], conn[1]])
+                elif delta_y < 0:
+                    rconnect(map, [[conn[0][0], conn[0][1] - 1], conn[1]])
 
-                        # map[conn[0][1]][conn[0][0]] = self.colors['BG_BG'] +\
-                        #     ('█' * (self.csize // 2)) + connectors['tr_edge'] + (connectors['horizontal'] * (self.csize // 2))
-                        return rconnect(map, [[conn[0][0], conn[0][1] + 1], conn[1]])
-                return
-            if (' ' not in map[conn[0][1]][conn[0][0]]):
-                map[conn[0][1]][conn[0][0]] = self.colors["BG_BG"] + (connectors['horizontal'] * self.csize) + "\x1b[0m"
-                self.ascii_grid = map
-                self.print_grid("", 0)
-                # sleep(1)
-            return rconnect(map, [[conn[0][0] + 1, conn[0][1]], [conn[1][0], conn[1][1]]])
         for c in self.raw_connections:
-            pass
-            # rconnect(self.ascii_grid, c)
-            # print(f"Connecting {c[0]} and {c[1]}")
+            rconnect(self.ascii_grid, c)
             # delta_x: int = abs(c[0][0] - c[1][0])
             # delta_y: int = abs(c[0][1] - c[1][1])
             # # this connection is horizontal so it will be rendered first
@@ -120,87 +120,10 @@ class Grid():
             #     for cell in range(delta_x - 1):
             #         amap[c[0][1]][c[0][0] + cell + 1] = connectors[
             #             'horizontal'] * self.csize
-            # else:
-            #     pass
 
     def base_grid(self, height: int, width: int,
                   vpad: int = 1, hpad: int = 1) -> list[list[str]]:
-        def connect(map: list[list[str]], conn: list[list[int]]) -> bool:
-            delta_x: int = conn[1][0] - conn[0][0]
-            delta_y: int = conn[1][1] - conn[0][1]
-            # end of recursion
-            if (delta_x == 1 and (delta_y == 0 or abs(delta_y) == 1)):
-                return True
-            if delta_y != 0:
-                # first case: origin is closer to median than destination
-                # render y-axis first and then x-axis
-                if (abs(conn[0][1] - self.hmedian) <
-                        abs(conn[1][1] - self.hmedian)):
-                    # origin is closer to median than destination
-                    map[conn[0][1] + (1 if delta_y > 0 else -1)][conn[0][0]] =\
-                        (f'{self.colors["BG_BG"]} ' * (self.csize//2)) +\
-                        ((connectors['vertical'] + f'{self.colors["BG_BG"]} ')
-                         if abs(delta_y) > 1 else
-                         ((connectors['bl_edge'] if delta_y > 0 else
-                           connectors['tl_edge'])
-                          + f'{self.colors["BG_BG"] + connectors["horizontal"]}') * (self.csize//2))
-                    return connect(
-                        map,
-                        [[conn[0][0], conn[0][1] + (1 if delta_y > 0 else -1)],
-                         conn[1]])
-                # destination is closer to median than origin
-                # render x-axis first and then y-axis
-                else:
-                    # breakpoint()
-                    # if (delta_x != 0):
-                    #     while (delta_x != 0):
-
-                    #     map[conn[0][1] + (-1 if delta_y < 0 else 1), conn[0][0]] =
-                    # if ([conn[0][0], conn[0][1]] == conn[1]):
-                    return True
-                    map[conn[0][1] + ((-1 if delta_y < 0 else 1) if delta_x == 0 else 0)][conn[0][0] + (1 if delta_x > 0 else 0)] =\
-                        ((connectors['horizontal'] * self.csize)
-                         if abs(delta_x) > 1
-                         else
-                         ((f'{self.colors["BG_BG"]}{connectors["horizontal"]}'
-                           * (self.csize//2)) + (
-                               connectors['br_edge']
-                               if delta_x == 1
-                               else
-                               connectors['tr_edge']) +
-                            (f'{self.colors["BG_BG"]} ' * (self.csize//2)))) if delta_x != 0 else (f'{self.colors["BG_BG"]} ' * (self.csize//2)) + (connectors['vertical'] + f'{self.colors["BG_BG"]} ')
-                    return connect(
-                        map,
-                        [[conn[0][0] + (1 if delta_x > 0 else 0), conn[0][1] + (-1 if delta_y < 0 and delta_x == 0 else 0)],
-                         conn[1]])
-                    # x coord aligned
-                    # if (conn[0][0] == conn[1][0] and delta_y != 0):
-                    #     map[conn[0][1] + (1 if delta_y < 0 else (-1))][conn[0][0]] =\
-                    #         (f'{self.colors["BG_BG"]} ' * (self.csize//2)) +\
-                    #         ((connectors['vertical'] + f'{self.colors["BG_BG"]} ' * (self.csize//2)))
-                    #     return connect(
-                    #         map,
-                    #         [[conn[0][0], conn[0][1] + (1 if delta_y > 0 else -1)], conn[1]]
-                    #     )
-                    # # x coord not aligned
-                    # else:
-                    #     map[conn[0][1]][conn[0][0] + 1] =\
-                    #         connectors["horizontal"] * self.csize if\
-                    #         delta_x > 1 else\
-                    #         (connectors['horizontal'] * (self.csize//2)) + (
-                    #             connectors["br_edge"] if delta_y < 0 else
-                    #             connectors["tr_edge"]) + (f'{self.colors["BG_BG"]} ' * (self.csize//2))
-                    #     return connect(
-                    #         map,
-                    #         [[conn[0][0] + 1, conn[0][1] + (-2 if (delta_x == 1 and delta_y < 0) else (2 if (delta_x == 1 and delta_y > 0) else 0))], conn[1]]
-                    #     )
-            elif (delta_y == 0 and delta_x != 0):
-                map[conn[0][1]][conn[0][0] + 1] = connectors[
-                    'horizontal'] * self.csize
-                return connect(map, [[conn[0][0] + 1, conn[0][1]], conn[1]])
-
         amap: list[list[str]] = []
-
         for r in range(2 + (height + ((height - 1) * vpad))):
             row: list[str] = []
             for c in range(2 + (width + ((width - 1) * hpad))):
@@ -256,9 +179,10 @@ class Grid():
     def print_grid(self, msg: str, delay: int = 1) -> None:
         CLEAR_SCREEN: str = '\x1b[2J\x1b[H'
         print(CLEAR_SCREEN)
-        # self.ascii_grid = self.base_grid(
-        #     self.map.dimensions[1], self.map.dimensions[0],
-        #     self.vpad, hpad=self.hpad)
+        self.ascii_grid = self.base_grid(
+            self.map.dimensions[1], self.map.dimensions[0],
+            self.vpad, hpad=self.hpad)
+        self.connect_grid()
         for row in self.ascii_grid:
             for cell in row:
                 print(cell, end='')
