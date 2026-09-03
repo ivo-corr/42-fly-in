@@ -263,8 +263,10 @@ class Map():
             z1.drones.remove(d)
             z2.drones.append(d)
             if (animation):
-                pass
-                # g.rmove(g.ascii_grid, [z1.coords, z2.coords])
+                tr_conn: list[list[int]] = [
+                    rc for rc in g.raw_connections
+                    if g.tr(rc[0]) == z1.coords and g.tr(rc[1]) == z2.coords]
+                g.rconnect(tr_conn[0], 1, '◯')
             # else:
             #     m.locked.append(d, z2)
             return (f"{d}-{z2.name}")

@@ -63,63 +63,44 @@ class Grid():
             self.map.dimensions[1], self.map.dimensions[0],
             self.vpad, hpad=self.hpad)
 
-    def rmove(self, map: list[list[str]], conn: list[list[int]], delay: float = 0.5):
+    def rconnect(self, conn: list[list[int]], delay: int = 0,
+                 a_char: str = ''):
         delta_x: int = conn[1][0] - conn[0][0]
         delta_y: int = conn[1][1] - conn[0][1]
-        breakpoint()
-        trconn: list[list[int]] = [tr(conn[0]), tr(conn[1])]
         if delta_x == 0 and delta_y == 0:
             return True
         if delta_x > 0:
-            if ' ' not in map[conn[0][1]][conn[0][0]]:
-                map[conn[0][1]][conn[0][0]] = 'x'
-                prev: str = map[conn[0][1] - 1][conn[0][0]]
-                if (' ' not in prev):
-                    map[conn[0][1] - 1][conn[0][0]] = (self.colors['BACKGROUND'] + self.colors['BG_BG'] + '█' * (self.csize // 2)) + '▫️' + ('█' * (self.csize // 2)) + self.colors['END']
-            self.print_grid("")
+            if ' ' not in self.ascii_grid[conn[0][1]][conn[0][0]]:
+                if (a_char == ''):
+                    self.ascii_grid[conn[0][1]][conn[0][0]] = (
+                        self.colors['BACKGROUND'] + self.colors['BG_BG'] +
+                        '█' * (self.csize // 2)) + '▫️' +\
+                            ('█' * (self.csize // 2)) + self.colors['END']
+                else:
+                    self.ascii_grid[conn[0][1]][conn[0][0]] = (
+                        self.colors['BACKGROUND'] + self.colors['BG_BG'] +
+                        '█' * (self.csize // 2)) + '◯' +\
+                            ('█' * (self.csize // 2)) + self.colors['END']
             sleep(delay)
-            self.rmove(map, [[conn[0][0] + 1, conn[0][1]], conn[1]])
+            self.rconnect([[conn[0][0] + 1, conn[0][1]], conn[1]])
         if delta_x == 0 and delta_y != 0:
-            if ' ' not in map[conn[0][1]][conn[0][0]]:
-                map[conn[0][1]][conn[0][0]] = (self.colors['BACKGROUND'] + self.colors['BG_BG'] + '█' * (self.csize // 2)) + '▫️' + ('█' * (self.csize // 2)) + self.colors['END']
-            self.print_grid("")
+            if ' ' not in self.ascii_grid[conn[0][1]][conn[0][0]]:
+                if (a_char == ''):
+                    self.ascii_grid[conn[0][1]][conn[0][0]] = (
+                        self.colors['BACKGROUND'] + self.colors['BG_BG'] +
+                        '█' * (self.csize // 2)) + '▫️' +\
+                            ('█' * (self.csize // 2)) + self.colors['END']
+                else:
+                    pass
             sleep(delay)
             if delta_y > 0:
-                self.rmove(map, [[conn[0][0], conn[0][1] + 1], conn[1]])
+                self.rconnect([[conn[0][0], conn[0][1] + 1], conn[1]])
             elif delta_y < 0:
-                self.rmove(map, [[conn[0][0], conn[0][1] - 1], conn[1]])
+                self.rconnect([[conn[0][0], conn[0][1] - 1], conn[1]])
 
     def connect_grid(self):
-        def rconnect(map: list[list[str]], conn: list[list[int]], delay: int = 0):
-            delta_x: int = conn[1][0] - conn[0][0]
-            delta_y: int = conn[1][1] - conn[0][1]
-            if delta_x == 0 and delta_y == 0:
-                return True
-            if delta_x > 0:
-                if ' ' not in map[conn[0][1]][conn[0][0]]:
-                    map[conn[0][1]][conn[0][0]] = (self.colors['BACKGROUND'] + self.colors['BG_BG'] + '█' * (self.csize // 2)) + '▫️' + ('█' * (self.csize // 2)) + self.colors['END']
-                sleep(delay)
-                rconnect(map, [[conn[0][0] + 1, conn[0][1]], conn[1]])
-            if delta_x == 0 and delta_y != 0:
-                if ' ' not in map[conn[0][1]][conn[0][0]]:
-                    map[conn[0][1]][conn[0][0]] = (self.colors['BACKGROUND'] + self.colors['BG_BG'] + '█' * (self.csize // 2)) + '▫️' + ('█' * (self.csize // 2)) + self.colors['END']
-                sleep(delay)
-                if delta_y > 0:
-                    rconnect(map, [[conn[0][0], conn[0][1] + 1], conn[1]])
-                elif delta_y < 0:
-                    rconnect(map, [[conn[0][0], conn[0][1] - 1], conn[1]])
-
         for c in self.raw_connections:
-            rconnect(self.ascii_grid, c)
-            # delta_x: int = abs(c[0][0] - c[1][0])
-            # delta_y: int = abs(c[0][1] - c[1][1])
-            # # this connection is horizontal so it will be rendered first
-            # if (delta_y == 0):
-            #     print("The connection is horizontal")
-            #     print(delta_x)
-            #     for cell in range(delta_x - 1):
-            #         amap[c[0][1]][c[0][0] + cell + 1] = connectors[
-            #             'horizontal'] * self.csize
+            self.rconnect(c)
 
     def base_grid(self, height: int, width: int,
                   vpad: int = 1, hpad: int = 1) -> list[list[str]]:
@@ -162,7 +143,7 @@ class Grid():
         dest_coord: list[int] = c.dest.coords
         return [src_coord, dest_coord]
 
-    def tr(self, coords: list[int],
+    def tr(self, coords: list[int] | list[list[int]],
            direction: int = 0) -> list[int]:
         '''
         Transform function takes grid coordinates and translates
