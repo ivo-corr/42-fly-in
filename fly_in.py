@@ -246,7 +246,7 @@ class Map():
             raise SemanticError("The capacity of the start zone"
                                 " can't be lower than the number of drones in "
                                 "the circuit")
-        if (self.drones > (cap := [z for z in self._zones 
+        if (self.drones > (cap := [z for z in self._zones
                            if z.if_name == 'end_hub'][0].capacity)
                 and cap > -1):
             raise SemanticError("The capacity of the end zone"
@@ -319,14 +319,18 @@ def parse_config(file: str):
             raise InputFileError(line, line_nr, "Zone coordinates must "
                                  "be integers")
 
-    def validate_connection(line: str, line_nr: int, conns: list[str]):
+    def validate_connection(line: str, line_nr: int, zones: list[str], conns: list[str]):
         conn: str = line.split(": ")[1].split(" [")[0]
         src: str
         dst: str
         src, dst = conn.split('-')
         converse_conn: str = dst + '-' + src
         count = 0
-        breakpoint()
+        # first check that connected zones exist
+        if (src not in zones or dst not in zones):
+            raise InputFileError(
+                line, line_nr, Message="Connections must connect existing zones"
+            )
         if count > 1:
             raise InputFileError(
                 line, line_nr, Message="There must not be any "
@@ -342,7 +346,7 @@ def parse_config(file: str):
     if result[0][0] != 'nb_drones':
         raise InputFileError(
             [li for li in splat if result[0][0] in li][0],
-            0,
+            1,
             Message="The first line of the input file must specify the "
             "number of drones in the circuit: 'nb_drones: <int>'"
         )
@@ -371,8 +375,12 @@ def parse_config(file: str):
         if 'hub' in result[i][0]:
             validate_hub(cline, cline_nr)
         if 'connection' in result[i][0]:
+            breakpoint()
             validate_connection(cline,
                                 cline_nr,
+                                [z[1].split(' ')[0]
+                                 for z in result[1:]
+                                 if z[0] != 'connection'],
                                 [cs for cs in result if cs[0] == 'connection'])
         if result[i][0] == 'start_hub':
             sh_count += 1
@@ -384,7 +392,7 @@ def parse_config(file: str):
             cline_nr,
             Message='There must be exactly one \'start_hub\':' +
             f'\n\'{cline}\'')
-    if (eh_count > 1):
+    if (eh_count != 1):
         raise InputFileError(
             file.split("\n").index(cline) + 1,
             Message='There must be exactly one \'end_hub\':' +
