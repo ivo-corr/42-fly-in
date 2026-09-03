@@ -331,7 +331,8 @@ def parse_config(file: str):
             raise InputFileError(
                 line, line_nr, Message="Connections must connect existing zones"
             )
-        if count > 1:
+        # second, check if there are equivalent connections
+        if (converse_conn in [c[1] for c in conns]):
             raise InputFileError(
                 line, line_nr, Message="There must not be any "
                 "duplicate connections"
@@ -375,7 +376,6 @@ def parse_config(file: str):
         if 'hub' in result[i][0]:
             validate_hub(cline, cline_nr)
         if 'connection' in result[i][0]:
-            breakpoint()
             validate_connection(cline,
                                 cline_nr,
                                 [z[1].split(' ')[0]
