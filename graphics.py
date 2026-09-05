@@ -76,12 +76,12 @@ class Grid():
                         self.colors['BACKGROUND'] + self.colors['BG_BG'] +
                         '█' * (self.csize // 2)) + '▫️' +\
                             ('█' * (self.csize // 2)) + self.colors['END']
+                    sleep(delay)
                 else:
                     self.ascii_grid[conn[0][1]][conn[0][0]] = (
                         self.colors['BACKGROUND'] + self.colors['BG_BG'] +
                         '█' * (self.csize // 2)) + '◯' +\
                             ('█' * (self.csize // 2)) + self.colors['END']
-            sleep(delay)
             self.rconnect([[conn[0][0] + 1, conn[0][1]], conn[1]])
         if delta_x == 0 and delta_y != 0:
             if ' ' not in self.ascii_grid[conn[0][1]][conn[0][0]]:
