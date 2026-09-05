@@ -78,34 +78,35 @@ class Grid():
                     '█' * (self.csize // 2)) + '▫️' +\
                     ('█' * (self.csize // 2)) + self.colors['END']
             self.rconnect([[conn[0][0] + 1, conn[0][1] - 1], conn[1]])
-        if delta_x > 0:
-            if ' ' not in self.ascii_grid[conn[0][1]][conn[0][0]]:
-                if (a_char == ''):
-                    self.ascii_grid[conn[0][1]][conn[0][0]] = (
-                        self.colors['BACKGROUND'] + self.colors['BG_BG'] +
-                        '█' * (self.csize // 2)) + '▫️' +\
-                            ('█' * (self.csize // 2)) + self.colors['END']
-                    sleep(delay)
-                else:
-                    self.ascii_grid[conn[0][1]][conn[0][0]] = (
-                        self.colors['BACKGROUND'] + self.colors['BG_BG'] +
-                        '█' * (self.csize // 2)) + '◯' +\
-                            ('█' * (self.csize // 2)) + self.colors['END']
-            self.rconnect([[conn[0][0] + 1, conn[0][1]], conn[1]])
-        if delta_x == 0 and delta_y != 0:
-            if ' ' not in self.ascii_grid[conn[0][1]][conn[0][0]]:
-                if (a_char == ''):
-                    self.ascii_grid[conn[0][1]][conn[0][0]] = (
-                        self.colors['BACKGROUND'] + self.colors['BG_BG'] +
-                        '█' * (self.csize // 2)) + '▫️' +\
-                            ('█' * (self.csize // 2)) + self.colors['END']
-                else:
-                    pass
-            sleep(delay)
-            if delta_y > 0:
-                self.rconnect([[conn[0][0], conn[0][1] + 1], conn[1]])
-            elif delta_y < 0:
-                self.rconnect([[conn[0][0], conn[0][1] - 1], conn[1]])
+        else:
+            if delta_x > 0:
+                if ' ' not in self.ascii_grid[conn[0][1]][conn[0][0]]:
+                    if (a_char == ''):
+                        self.ascii_grid[conn[0][1]][conn[0][0]] = (
+                            self.colors['BACKGROUND'] + self.colors['BG_BG'] +
+                            '█' * (self.csize // 2)) + '▫️' +\
+                                ('█' * (self.csize // 2)) + self.colors['END']
+                        sleep(delay)
+                    else:
+                        self.ascii_grid[conn[0][1]][conn[0][0]] = (
+                            self.colors['BACKGROUND'] + self.colors['BG_BG'] +
+                            '█' * (self.csize // 2)) + '◯' +\
+                                ('█' * (self.csize // 2)) + self.colors['END']
+                self.rconnect([[conn[0][0] + 1, conn[0][1]], conn[1]])
+            if delta_x == 0 and delta_y != 0:
+                if ' ' not in self.ascii_grid[conn[0][1]][conn[0][0]]:
+                    if (a_char == ''):
+                        self.ascii_grid[conn[0][1]][conn[0][0]] = (
+                            self.colors['BACKGROUND'] + self.colors['BG_BG'] +
+                            '█' * (self.csize // 2)) + '▫️' +\
+                                ('█' * (self.csize // 2)) + self.colors['END']
+                    else:
+                        pass
+                sleep(delay)
+                if delta_y > 0:
+                    self.rconnect([[conn[0][0], conn[0][1] + 1], conn[1]])
+                elif delta_y < 0:
+                    self.rconnect([[conn[0][0], conn[0][1] - 1], conn[1]])
 
     def connect_grid(self):
         for c in self.raw_connections:
