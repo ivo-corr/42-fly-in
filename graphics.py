@@ -108,9 +108,37 @@ class Grid():
                 elif delta_y < 0:
                     self.rconnect([[conn[0][0], conn[0][1] - 1], conn[1]])
 
+    def bresenham(self, x0, y0, x1, y1):
+        points = []
+        dx = abs(x1 - x0)
+        dy = -abs(y1 - y0)
+        sx = 1 if x0 < x1 else -1
+        sy = 1 if y0 < y1 else -1
+        err = dx + dy
+
+        while True:
+            points.append((x0, y0))
+            if x0 == x1 and y0 == y1:
+                break
+            e2 = 2 * err
+            if e2 >= dy:
+                err += dy
+                x0 += sx
+            if e2 <= dx:
+                err += dx
+                y0 += sy
+        return points
+
     def connect_grid(self):
         for c in self.raw_connections:
-            self.rconnect(c)
+            points: list[tuple[int, int]] = self.bresenham(c[0][0], c[0][1], c[1][0], c[1][1])
+            for p in points:
+                if ' ' not in self.ascii_grid[p[1]][p[0]]:
+                    self.ascii_grid[p[1]][p[0]] = (
+                        self.colors['BACKGROUND'] + self.colors['BG_BG'] +
+                        '█' * (self.csize // 2)) + '▫️' +\
+                            ('█' * (self.csize // 2)) + self.colors['END']
+            #self.rconnect(c)
 
     def base_grid(self, height: int, width: int,
                   vpad: int = 1, hpad: int = 1) -> list[list[str]]:

@@ -638,7 +638,7 @@ if __name__ == "__main__":
         print(f"\x1b[43mSemanticError:\n{e}\n")
         exit()
     print(f"Map size: {m.dimensions}")
-    g: graphics.Grid = graphics.Grid(m, 3, vpad=5, hpad=4)
+    g: graphics.Grid = graphics.Grid(m, 3, vpad=5, hpad=5)
     msg = "\nR: run simulation\nN: next turn\nS: select map\nQ: quit"
     g.print_grid(m.show()+msg, delay=0.3)
     cmd: str = prompt()
@@ -650,7 +650,7 @@ if __name__ == "__main__":
         tmoves, finished, tdata = next_turn(m)
         for d in tdata:
             output_f += " ".join(tdata) + '\n'
-        g = graphics.Grid(m, 3, vpad=5, hpad=4)
+        g = graphics.Grid(m, 3, vpad=5, hpad=5)
         g.print_grid(
             msg + f'\n\n─── Turn {turn} ───\n' + '\n'.join(tdata) +
             '\n──────────────')
