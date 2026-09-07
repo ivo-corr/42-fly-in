@@ -1,6 +1,6 @@
 from enum import Enum
 from time import sleep
-import graphics
+# import graphics
 import os
 from typing import Any
 import re
@@ -348,7 +348,7 @@ def parse_config(file: str):
                         cline_nr,
                         Message='MAX_LINK_CAPACITY is not a property of hubs')
                 if meta[0].lower() == 'zone'\
-                        and meta[0] not in list(ZoneType.__members__.keys()):
+                        and meta[1].upper() not in list(ZoneType.__members__.keys()):
                     raise InputFileError(
                         cline,
                         cline_nr,
@@ -618,7 +618,7 @@ def next_turn(m: Map) -> tuple[int, int]:
                 if len(next_forward_priority) > 0 and d\
                         not in [md[0] for md in moved_drones]:
                     tdata.append(m.move(z, next_forward_priority[0], d, moved_drones))
-                    g.print_grid('', delay=0.3)
+                    # g.print_grid('', delay=0.3)
                     move_flag = True
                     conn: Map.Zone.Connection = [
                         c for c in z.get_connections()
@@ -628,7 +628,7 @@ def next_turn(m: Map) -> tuple[int, int]:
                 if len(next_forward) > 0 and d\
                         not in [md[0] for md in moved_drones]:
                     tdata.append(m.move(z, next_forward[0], d, moved_drones))
-                    g.print_grid('', delay=0.3)
+                    # g.print_grid('', delay=0.3)
                     move_flag = True
                     conn: Map.Zone.Connection = [
                         c for c in z.get_connections()
@@ -657,6 +657,7 @@ def next_turn(m: Map) -> tuple[int, int]:
 
 
 if __name__ == "__main__":
+    import graphics
     def prompt():
         cmd: str = input("\n## ")
         if (cmd.upper() == 'Q'):
