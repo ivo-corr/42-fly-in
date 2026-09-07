@@ -156,7 +156,7 @@ class Map():
                     else:
                         color = color.split(' ')[0]
                     if color not in Map.colors:
-                        Map.colors.append(color)
+                        color = Map.colors[0]
                 if int(c[1].split(" ")[1:3][1]) < 0:
                     absolute: int = abs(int(c[1].split(" ")[1:3][1]))
                     if (absolute > delta):
