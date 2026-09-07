@@ -1,0 +1,11 @@
+# Test 09: False connection, links non-existing zones
+nb_drones: 2
+
+start_hub: start 0 0 [color=green max_drones=10]
+hub: waypoint1 2 0 [color=blue]
+hub: waypoint2 3 0 [color=blue]
+end_hub: goal 4 0 [color=red]
+
+connection: start-waypoint1 [max_link_capacity=1]
+connection: waypoint1-waypoint5
+connection: waypoint2-goal

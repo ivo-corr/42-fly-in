@@ -1,0 +1,13 @@
+# Test 03: duplicated start_hub
+nb_drones: 2
+
+start_hub: start 0 0 [color=green max_drones=10]
+start_hub: start2 1 0
+hub: waypoint1 2 0 [color=blue]
+hub: waypoint2 3 0 [color=blue]
+end_hub: goal 4 0 [color=red]
+
+connection: start-start2 [max_link_capacity=1]
+connection: start2-waypoint1
+connection: waypoint1-waypoint2
+connection: waypoint2-goal
