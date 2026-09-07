@@ -3,6 +3,8 @@ from time import sleep
 import graphics
 import os
 from typing import Any
+import re
+
 
 class InputFileError(Exception):
     def __init__(self, line: str | list[str] | None = None,
@@ -121,7 +123,10 @@ class Map():
     """
             else:
                 pass
-
+    colors: list[str] = ["NONE", "GREEN", "RED", "BLUE", "ORANGE",
+                              "YELLOW", "CYAN", "PURPLE", "BROWN",
+                              "LIME", "MAGENTA", "GOLD", "BLACK",
+                              "MAROON", "DARKRED", "CRIMSON", "RAINBOW"]
     def __init__(self, pconfig: str):
         self._zones: list[Map.Zone] = []
         self.dimensions: list[int] = [0, 0]
@@ -132,10 +137,6 @@ class Map():
         delta denotes the y-axis offset caused by the weird negative index
         notation that was chosen for the map config files
         '''
-        self.colors: list[str] = ["NONE", "GREEN", "RED", "BLUE", "ORANGE",
-                                  "YELLOW", "CYAN", "PURPLE", "BROWN",
-                                  "LIME", "MAGENTA", "GOLD", "BLACK",
-                                  "MAROON", "DARKRED", "CRIMSON", "RAINBOW"]
         for c in pconfig:
             meta: list[list[str]] = [
                 [md.lower()] for md in Metadata.__members__ if
@@ -154,8 +155,8 @@ class Map():
                         color = color.split("]")[0]
                     else:
                         color = color.split(' ')[0]
-                    if color not in self.colors:
-                        self.colors.append(color)
+                    if color not in Map.colors:
+                        Map.colors.append(color)
                 if int(c[1].split(" ")[1:3][1]) < 0:
                     absolute: int = abs(int(c[1].split(" ")[1:3][1]))
                     if (absolute > delta):
@@ -331,19 +332,44 @@ def parse_config(file: str):
                     cline,
                     cline_nr,
                     Message='Metadata must be specified '
-                    'as <property>=<value>')
+                    'as \'<property>=<value>\'')
+            try:
+                Metadata[meta[0].upper()]
+            except KeyError:
+                raise InputFileError(
+                    cline,
+                    cline_nr,
+                    Message=f'\'{meta[0].upper()}\' is not a valid property.\n'
+                    f'Valid properties: {list(Metadata.__members__.keys())}')
+            if type.lower() == 'hub':
+                if meta[0].lower() == 'max_link_capacity':
+                    raise InputFileError(
+                        cline,
+                        cline_nr,
+                        Message='MAX_LINK_CAPACITY is not a property of hubs')
+                if meta[0].lower() == 'zone'\
+                        and meta[0] not in list(ZoneType.__members__.keys()):
+                    raise InputFileError(
+                        cline,
+                        cline_nr,
+                        Message=f'\'{meta[1]}\' is not a valid Zone type.\n'
+                        f'Zone types: {list(ZoneType.__members__.keys())}')
+            if type.lower() == 'connection':
+                if meta[0].lower != 'max_link_capacity':
+                    raise InputFileError(
+                        cline,
+                        cline_nr,
+                        Message='Connections can only have MAX_LINK_CAPACITY'
+                        ' as a property.')
         elif ml > 1:
-            breakpoint()
             for p in meta.split(' '):
-                validate_md(p, )
-
+                validate_md(p, type)
 
     def validate_hub(line: str, line_nr: int):
         splat: list[str] = line.split(": ")
         if (len((m := splat[1].split('['))) > 1):
             meta: str = m[1][:-1]
             validate_md(meta, 'hub')
-        breakpoint()
         if len(splat) < 2:
             raise InputFileError(line, line_nr, "Missing semicolon")
         if ('-' in splat[0] or ' ' in splat[0]):
@@ -362,7 +388,6 @@ def parse_config(file: str):
         dst: str
         src, dst = conn.split('-')
         converse_conn: str = dst + '-' + src
-        count = 0
         # first check that connected zones exist
         if (src not in zones or dst not in zones):
             raise InputFileError(
