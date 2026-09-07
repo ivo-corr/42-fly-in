@@ -323,8 +323,27 @@ to '{z2.name}'\x1b[0m''')
 
 
 def parse_config(file: str):
+    def validate_md(meta: str, type: str):
+        if (ml := len(meta.split(' '))) == 1:
+            meta = meta.split('=')
+            if (len(meta) != 2):
+                raise InputFileError(
+                    cline,
+                    cline_nr,
+                    Message='Metadata must be specified '
+                    'as <property>=<value>')
+        elif ml > 1:
+            breakpoint()
+            for p in meta.split(' '):
+                validate_md(p, )
+
+
     def validate_hub(line: str, line_nr: int):
         splat: list[str] = line.split(": ")
+        if (len((m := splat[1].split('['))) > 1):
+            meta: str = m[1][:-1]
+            validate_md(meta, 'hub')
+        breakpoint()
         if len(splat) < 2:
             raise InputFileError(line, line_nr, "Missing semicolon")
         if ('-' in splat[0] or ' ' in splat[0]):

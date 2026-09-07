@@ -4,21 +4,15 @@ PYTHON = python3
 MAIN = fly_in.py
 VENV_NAME = .venv
 
-cvenv:
-	$(PYTHON) -m venv $(VENV_NAME)
-
-install: cvenv
+install:
+	$(PYTHON) -m venv $(VENV_NAME) && \
 	. $(VENV_NAME)/bin/activate && \
-	$(PYTHON) -m pip install build && \
-	$(PYTHON) -m build && \
-	mv dist/* . && \
-	rmdir dist && \
-	$(PYTHON) -m pip install .
+	pip install -r requirements.txt
 
-run:
+run: install
 	$(PYTHON) $(MAIN)
 
-debug:
+debug: install
 	$(PYTHON) -m pdb $(MAIN)
 
 clean:
