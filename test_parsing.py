@@ -4,6 +4,7 @@ from fly_in import parse_config, InputFileError
 
 STRICT = "--strict" in sys.argv
 
+
 class TestParsing(unittest.TestCase):
     def test_nb_drones_first_line(self):
         with self.assertRaises(Exception):
@@ -65,6 +66,10 @@ class TestParsing(unittest.TestCase):
         def test_zone_same_coords(self):
             with self.assertRaises(Exception):
                 with open("test_maps/14.txt") as file:
+                    parse_config(file.read())
+        def test_connection_metadata(self):
+            with self.assertRaises(Exception):
+                with open("test_maps/15.txt") as file:
                     parse_config(file.read())
 
 if __name__ == "__main__":

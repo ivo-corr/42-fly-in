@@ -3,7 +3,6 @@ from time import sleep
 # import graphics
 import os
 from typing import Any
-import re
 
 
 class InputFileError(Exception):
@@ -124,9 +123,26 @@ class Map():
             else:
                 pass
     colors: list[str] = ["NONE", "GREEN", "RED", "BLUE", "ORANGE",
-                              "YELLOW", "CYAN", "PURPLE", "BROWN",
-                              "LIME", "MAGENTA", "GOLD", "BLACK",
-                              "MAROON", "DARKRED", "CRIMSON", "RAINBOW"]
+                         "YELLOW", "CYAN", "PURPLE", "BROWN",
+                         "LIME", "MAGENTA", "GOLD", "BLACK",
+                         "MAROON", "DARKRED", "CRIMSON", "RAINBOW"]
+    move_count: int = 0
+
+    @staticmethod
+    def hasPath(xs: list[tuple[int]], conn: tuple[int, int], counter: int = 0):
+        '''
+        hasPath returns the number of intermediate vertices
+        between two points if a path between nodes
+        tuple[0] and tuple[1]
+        exists, otherwise -1
+        '''
+        if (conn[0] == conn[1]):
+            return counter
+        xsf = [(n, m) for (n, m) in xs if n != conn[0]]
+        return next((x for x in [
+            Map.hasPath(xsf, (m, conn[1]), counter + 1)
+            for (n, m) in xs if n == conn[0]] if x > 0), -1)
+
     def __init__(self, pconfig: str):
         self._zones: list[Map.Zone] = []
         self.dimensions: list[int] = [0, 0]
@@ -253,6 +269,12 @@ class Map():
             raise SemanticError("The capacity of the end zone"
                                 " can't be lower than the number of drones in "
                                 "the circuit")
+        if Map.hasPath(
+                    self.get_graph(),
+                    (self.get_zone('start').node(self),
+                     self.get_zone('goal').node(self))) == -1:
+            raise SemanticError(Message='There must be at least one path'
+                                'from start zone to goal zone')
 
     def move(self, z1: "Map.Zone",
              z2: "Map.Zone", d: str,
@@ -347,20 +369,36 @@ def parse_config(file: str):
                         cline,
                         cline_nr,
                         Message='MAX_LINK_CAPACITY is not a property of hubs')
-                if meta[0].lower() == 'zone'\
-                        and meta[1].upper() not in list(ZoneType.__members__.keys()):
+                if meta[0].lower() == 'zone' and\
+                        meta[1].upper() not in list(ZoneType.__members__.keys()):
                     raise InputFileError(
                         cline,
                         cline_nr,
                         Message=f'\'{meta[1]}\' is not a valid Zone type.\n'
                         f'Zone types: {list(ZoneType.__members__.keys())}')
+                if meta[0].lower() == 'max_drones':
+                    try:
+                        int(meta[1])
+                    except Exception:
+                        raise InputFileError(
+                            cline,
+                            cline_nr,
+                            Message='max_drones should be an integer')
             if type.lower() == 'connection':
-                if meta[0].lower != 'max_link_capacity':
+                if meta[0].lower() != 'max_link_capacity':
                     raise InputFileError(
                         cline,
                         cline_nr,
                         Message='Connections can only have MAX_LINK_CAPACITY'
                         ' as a property.')
+                if meta[0].lower() == 'max_link_capacity':
+                    try:
+                        int(meta[1])
+                    except Exception:
+                        raise InputFileError(
+                            cline,
+                            cline_nr,
+                            Message='max_link_capacity should be an integer')
         elif ml > 1:
             for p in meta.split(' '):
                 validate_md(p, type)
@@ -399,7 +437,8 @@ def parse_config(file: str):
                 line, line_nr, Message="There must not be any "
                 "duplicate connections"
             )
-
+        if (len((md := line.split('['))) == 2):
+            validate_md(md[1][:-1], 'connection')
     result: list[list[str] | list[list[list[str]]]] = []
     splat: list[str] = file.split("\n")
     splat = [s for s in splat if not s.startswith("#")]
@@ -538,19 +577,19 @@ def next_turn(m: Map) -> tuple[int, int]:
     returns True when all drones reached goal
     False otherwise
     '''
-    def hasPath(xs: list[tuple[int]], conn: tuple[int, int], counter: int = 0):
-        '''
-        hasPath returns the number of intermediate vertices
-        between two points if a path between nodes
-        tuple[0] and tuple[1]
-        exists, otherwise -1
-        '''
-        if (conn[0] == conn[1]):
-            return counter
-        xsf = [(n, m) for (n, m) in xs if n != conn[0]]
-        return next((x for x in [
-            hasPath(xsf, (m, conn[1]), counter + 1)
-            for (n, m) in xs if n == conn[0]] if x > 0), -1)
+    # def hasPath(xs: list[tuple[int]], conn: tuple[int, int], counter: int = 0):
+    #     '''
+    #     hasPath returns the number of intermediate vertices
+    #     between two points if a path between nodes
+    #     tuple[0] and tuple[1]
+    #     exists, otherwise -1
+    #     '''
+    #     if (conn[0] == conn[1]):
+    #         return counter
+    #     xsf = [(n, m) for (n, m) in xs if n != conn[0]]
+    #     return next((x for x in [
+    #         hasPath(xsf, (m, conn[1]), counter + 1)
+    #         for (n, m) in xs if n == conn[0]] if x > 0), -1)
     move_count: int = 0
     moved_drones: list[list[str, Map.Zone.Connection]] = []
     move_flag: bool = True
@@ -585,10 +624,10 @@ def next_turn(m: Map) -> tuple[int, int]:
             for d in z.drones.copy():
                 next_forward_priority: Map.Zone = [
                     nxtzone for nxtzone in z.possible_moves()
-                    if (step_count := hasPath(
+                    if (step_count := Map.hasPath(
                         m.get_graph(),
                         (nxtzone.node(m), goal_zone.node(m))))
-                    < hasPath(m.get_graph(),
+                    < Map.hasPath(m.get_graph(),
                               (z.node(m), goal_zone.node(m)))
                     and
                     step_count != -1
@@ -596,20 +635,20 @@ def next_turn(m: Map) -> tuple[int, int]:
                     nxtzone.type == "PRIORITY"]
                 next_forward: Map.Zone = [
                     nxtzone for nxtzone in z.possible_moves()
-                    if (scount := hasPath(
+                    if (scount := Map.hasPath(
                         m.get_graph(),
                         (nxtzone.node(m), goal_zone.node(m))))
-                    < hasPath(m.get_graph(),
+                    < Map.hasPath(m.get_graph(),
                               (z.node(m), goal_zone.node(m)))
                     and scount != -1
                     and nxtzone.type != "RESTRICTED"]
                 next_forward_restricted: Map.Zone = [
                     nxtzone for nxtzone in z.possible_moves()
-                    if (step_count := hasPath(
+                    if (step_count := Map.hasPath(
                         m.get_graph(),
                         (nxtzone.node(m), goal_zone.node(m))))
-                    < hasPath(m.get_graph(),
-                              (z.node(m), goal_zone.node(m)))
+                    < Map.hasPath(m.get_graph(),
+                                  (z.node(m), goal_zone.node(m)))
                     and
                     step_count != -1
                     and
@@ -658,6 +697,7 @@ def next_turn(m: Map) -> tuple[int, int]:
 
 if __name__ == "__main__":
     import graphics
+
     def prompt():
         cmd: str = input("\n## ")
         if (cmd.upper() == 'Q'):
