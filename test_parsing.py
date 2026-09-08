@@ -1,6 +1,8 @@
+import sys
 import unittest
 from fly_in import parse_config, InputFileError
 
+STRICT = "--strict" in sys.argv
 
 class TestParsing(unittest.TestCase):
     def test_nb_drones_first_line(self):
@@ -55,6 +57,12 @@ class TestParsing(unittest.TestCase):
         with self.assertRaises(Exception):
             with open("test_maps/13.txt") as file:
                 parse_config(file.read())
+    def test_connection_metadata(self):
+        with self.assertRaises(Exception):
+            with open("test_maps/14.txt") as file:
+                parse_config(file.read())
 
 if __name__ == "__main__":
+    if STRICT:
+        sys.argv.remove("--strict")
     unittest.main()

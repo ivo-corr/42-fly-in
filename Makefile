@@ -3,6 +3,7 @@
 PYTHON = python3
 MAIN = fly_in.py
 VENV_NAME = .venv
+TEST_NAME = test_parsing
 
 install:
 	$(PYTHON) -m venv $(VENV_NAME) && \
@@ -14,6 +15,12 @@ run: install
 
 debug: install
 	$(PYTHON) -m pdb $(MAIN)
+
+test: install
+	$(PYTHON) -m $(TEST_NAME)
+
+test-strict: install
+	$(PYTHON) -m $(TEST_NAME) --strict
 
 clean:
 	find . -type d -name "__pycache__" -exec rm -rf {} +
