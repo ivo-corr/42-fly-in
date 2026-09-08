@@ -1,4 +1,4 @@
-# Test 07: non-integer coordinate
+# Test 15: non-integer coordinate
 nb_drones: 2
 
 start_hub: start 0 0 [color=green max_drones=10]

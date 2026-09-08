@@ -61,6 +61,11 @@ class TestParsing(unittest.TestCase):
         with self.assertRaises(Exception):
             with open("test_maps/14.txt") as file:
                 parse_config(file.read())
+    if STRICT:
+        def test_zone_same_coords(self):
+            with self.assertRaises(Exception):
+                with open("test_maps/14.txt") as file:
+                    parse_config(file.read())
 
 if __name__ == "__main__":
     if STRICT:
