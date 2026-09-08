@@ -656,7 +656,8 @@ def next_turn(m: Map) -> tuple[int, int]:
                 # breakpoint()
                 if len(next_forward_priority) > 0 and d\
                         not in [md[0] for md in moved_drones]:
-                    tdata.append(m.move(z, next_forward_priority[0], d, moved_drones))
+                    tdata.append(m.move(z, next_forward_priority[0], d,
+                                        moved_drones))
                     # g.print_grid('', delay=0.3)
                     move_flag = True
                     conn: Map.Zone.Connection = [
@@ -733,8 +734,7 @@ if __name__ == "__main__":
     output_f: str = ""
     while (True):
         tmoves, finished, tdata = next_turn(m)
-        for d in tdata:
-            output_f += " ".join(tdata) + '\n'
+        output_f += (" ".join(tdata) + '\n').replace('  ', ' ')
         g = graphics.Grid(m, 3, vpad=5, hpad=5)
         g.print_grid(
             msg + f'\n\n─── Turn {turn} ───\n' + '\n'.join(tdata) +
