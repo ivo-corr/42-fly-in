@@ -197,6 +197,7 @@ class Map():
                                 str(delta-absolute)],
                             color=color,
                             capacity=int(md) if ["max_drones"] in meta
+                            else 1 if name != 'start' and name != 'goal'
                             else -1,
                             type=ZoneType.__members__.get(
                                 zone_md.upper(), ZoneType.NORMAL).name,
@@ -225,6 +226,7 @@ class Map():
                                  color=color,
                                  capacity=int(drones_md)
                                  if ["max_drones"] in meta
+                                 else 1 if name != 'start' and name != 'goal'
                                  else -1,
                                  type=ZoneType.__members__.get(
                                      zone_md.upper(), ZoneType.NORMAL).name,
