@@ -1,6 +1,5 @@
 from enum import Enum
 from time import sleep
-# import graphics
 import os
 from typing import Any
 
@@ -18,8 +17,6 @@ class InputFileError(Exception):
 
 class SemanticError(Exception):
     def __init__(self, Message: str | None = None) -> None:
-        if Message is None:
-            Message = f'Error in line {line_nr}: \'{line}\''
         super().__init__(Message)
 
 
@@ -38,90 +35,6 @@ class ZoneType(Enum):
 
 
 class Map():
-    class Zone():
-        class Connection():
-            def __init__(self, orig: "Map.Zone", dest: "Map.Zone",
-                         max_capacity: int = 1):
-                self.orig = orig
-                self.dest = dest
-                self.name = f"{self.orig.name}-{self.dest.name}"
-                self.drones: list["str"] = []
-                self.capacity = max_capacity
-
-            def available(self) -> bool:
-                if self.capacity == -1 or len(self.drones) < self.capacity:
-                    return True
-                return False
-
-            def is_converse(self, c: "Map.Zone.Connection") -> bool:
-                if type(c) is not list:
-                    return True if self.orig == c.dest and\
-                        self.dest == c.orig and\
-                        self.capacity == c.capacity else False
-
-            def show(self):
-                return f"{self.orig.name} <=> {self.dest.name}"
-
-        def __init__(self, name: str, if_name: str,
-                     coords: tuple[str, str] | list[str],
-                     type: ZoneType = ZoneType.NORMAL,
-                     color: str = "NONE",
-                     capacity: int = -1,
-                     drones: int = 0):
-            self.if_name: str = if_name
-            self.name: str = name
-            self.coords: tuple[int, int] | list[int] = [int(x) for x in coords]
-            self.type = type
-            self.color = color
-            # self.color = [
-            #     c for c in Color if str(c) == "Color." + color.upper()][0]
-            self._connections: list[Map.Zone.Connection] = []
-            self.drones: list[str] = []
-            self.capacity: int = capacity
-            for dn in range(drones):
-                self.drones.append("D"+str(dn))
-
-        def set_connection(self, dest: "Map.Zone", capacity: int = -1):
-            self._connections.append(Map.Zone.Connection(
-                self, dest, max_capacity=capacity))
-
-        def get_connections(self) -> list["Map.Zone.Connection"]:
-            return (self._connections)
-
-        def node(self, m: "Map") -> int:
-            '''
-            returns the numeric id of the node
-            that represents this zone in the graph
-            that represents map m
-            '''
-            return m.get_zones().index(self)
-
-        def available(self) -> bool:
-            if (self.type == "BLOCKED"):
-                return False
-            if (self.capacity == -1 or
-                    len(self.drones) < self.capacity):
-                return True
-            return False
-
-        def possible_moves(self) -> list["Map.Zone"]:
-            available: list["Map.Zone"] = []
-            [available.append(c.dest) for c in self.get_connections() if
-             c.dest.available() and c.available()]
-            return available
-
-        def show(self, mode: int = 0):
-            if mode == 0:
-                return f"""\x1b[46m\n\n\t{self.name}:
-    \t\tCoordinates: {self.coords}
-    \t\tType: {self.type}
-    \t\tDrones: \n\t\t\t{(chr(10) + (chr(9) * 3)).join([d for d in self.drones])}
-    \t\tConnections: \n\t\t\t{(chr(10) + (chr(9) * 3)).join([c.show()
-                                            for c in self._connections])}
-    \t\tColor: {self.color}\n\x1b[0m
-    """
-            else:
-                pass
     colors: list[str] = ["NONE", "GREEN", "RED", "BLUE", "ORANGE",
                          "YELLOW", "CYAN", "PURPLE", "BROWN",
                          "LIME", "MAGENTA", "GOLD", "BLACK",
@@ -144,10 +57,11 @@ class Map():
             for (n, m) in xs if n == conn[0]] if x > 0), -1)
 
     def __init__(self, pconfig: str):
-        self._zones: list[Map.Zone] = []
+        self._zones: list[Zone] = []
         self.dimensions: list[int] = [0, 0]
         self.drones: int = 0
-        self.locked: tuple[str, Map.Zone] = []
+        self.locked: tuple[str, (Connection, Zone)] = []
+        self.moved_drones: list[str] = []
         delta: int = 0
         '''
         delta denotes the y-axis offset caused by the weird negative index
@@ -157,13 +71,11 @@ class Map():
             meta: list[list[str]] = [
                 [md.lower()] for md in Metadata.__members__ if
                 md.lower() in c[1]]
-            # breakpoint()
             if ("nb_drones" in c[0]):
                 self.drones = int(c[1])
             if ('hub' in c[0]):
                 # this branch of the if-else manages cases where we have
                 # coordinates in the y-axis
-                # breakpoint()
                 color: str = "NONE"
                 if "color" in c[1]:
                     color = c[1].split("color=")[1].upper()
@@ -188,7 +100,7 @@ class Map():
                             if len(zsplit.split(" ")) > 1\
                             else zsplit.split("]")[0]
                     self._zones.append(
-                        Map.Zone(
+                        Zone(
                             name := c[1].split(" ")[0],
                             c[0],
                             tmp := [
@@ -220,7 +132,7 @@ class Map():
                             if len(zsplit.split(" ")) > 1\
                             else zsplit.split("]")[0]
                     self._zones.append(
-                        Map.Zone(name := c[1].split(" ")[0],
+                        Zone(name := c[1].split(" ")[0],
                                  c[0],
                                  tmp,
                                  color=color,
@@ -278,26 +190,28 @@ class Map():
             raise SemanticError(Message='There must be at least one path'
                                 'from start zone to goal zone')
 
-    def move(self, z1: "Map.Zone",
-             z2: "Map.Zone", d: str,
-             moved_drones: list[Any],
-             animation: bool = True):
-        if (z1 in self.get_zones() and
-            z2 in self.get_zones() and
-                d in z1.drones):
-            if (z2.name in [c.dest.name for c in z1.get_connections()]
-                and len([c for c in moved_drones
+
+
+    def move(self, z1: "Zone",
+             z2: "Zone", d: str):
+        # check that z1, z2, and d exist.
+        if ({z1, z2, d} & set(self.get_zones() + self.get_connections() + z1.drones) == {z1, z2, d}
+            and (z2 in [(c.dest if type(c) is Connection else c) for c in z1.get_connections()] or z2 in z1.get_connections())):
+        # check that the amount of drones moved through
+        # the connection so far is lower than the connection's capacity.
+            breakpoint()
+            if (len([c for c in self.moved_drones
                          if c[1] == [c for c in z1.get_connections()
-                                     if c.dest.name == z2.name][0]])
-                <
+                                     if c.dest == z2][0]]) <
                 [c for c in z1.get_connections()
-                    if c.dest.name == z2.name][0].capacity):
+                    if ((c.dest if type(c) is Connection else c) == z2)][0].capacity):
                 z1.drones.remove(d)
                 z2.drones.append(d)
                 return (f"{d}-{z2.name}")
             else:
-                return ''
+                return None
         else:
+            breakpoint()
             raise Exception(
                 f'''\x1b[43mMap.move ERROR:\nOne of the following is\
  not true:
@@ -306,14 +220,17 @@ class Map():
             There is a connection from '{z1.name}'\
 to '{z2.name}'\x1b[0m''')
 
-    def get_zones(self, only_occupied: bool = False) -> list["Map.Zone"]:
+    def get_zones(self, only_occupied: bool = False) -> list["Zone"]:
         if not only_occupied:
             return self._zones
         return [z for z in self.get_zones() if len(z.drones) > 0]
 
-    # def get_connection(self, o)
+    def get_connections(
+            self,
+            only_occupied: bool = False) -> list["Connection"]:
+        return [c for z in m._zones for c in z.get_connections()]
 
-    def get_zone(self, name: str) -> "Map.Zone":
+    def get_zone(self, name: str) -> "Zone":
         found_zone = [z for z in self.get_zones() if z.name == name.lower()]
         if len(found_zone) == 1:
             return found_zone[0]
@@ -345,6 +262,109 @@ to '{z2.name}'\x1b[0m''')
         #     panels.append(p)
         # breakpoint()
         return msg
+
+    def new_turn(self):
+        self.moved_drones: list[list[str, Zone]]
+        move_flag: bool = True
+        turn_log: list[str] = []
+        goal_zone: Zone = m.get_zone("goal")
+
+        # check if circuit is complete
+        if (len(goal_zone.drones)) == m.drones:
+            return 1
+
+        # flush drones from connections into their corresponding restricted zones
+        for d in self.locked:
+            self.move(d[1][0], d[1][1], d[0])
+
+
+class Zone():
+    def __init__(self, name: str, if_name: str,
+                 coords: tuple[str, str] | list[str],
+                 type: ZoneType = ZoneType.NORMAL,
+                 color: str = "NONE",
+                 capacity: int = -1,
+                 drones: int = 0):
+        self.if_name: str = if_name
+        self.name: str = name
+        self.coords: tuple[int, int] | list[int] = [int(x) for x in coords]
+        self.type = type
+        self.color = color
+        self._connections: list[Connection] = []
+        self.drones: list[str] = []
+        self.capacity: int = capacity
+        for dn in range(drones):
+            self.drones.append("D"+str(dn))
+
+    def set_connection(self, dest: "Zone", capacity: int = -1):
+        self._connections.append(Connection(
+            self, dest, max_capacity=capacity))
+
+    def get_connections(self) -> list["Connection"]:
+        return (self._connections)
+
+    def node(self, m: "Map") -> int:
+        '''
+        returns the numeric id of the node
+        that represents this zone in the graph
+        that represents map m
+        '''
+        return m.get_zones().index(self)
+
+    def available(self) -> bool:
+        if (self.type == "BLOCKED"):
+            return False
+        if (self.capacity == -1 or
+                len(self.drones) < self.capacity):
+            return True
+        return False
+
+    def possible_moves(self) -> list["Zone"]:
+        available: list[Zone] = []
+        [available.append(c.dest) for c in self.get_connections() if
+         c.dest.available() and c.available()]
+        return available
+
+    def show(self, mode: int = 0):
+        if mode == 0:
+            return f"""\x1b[46m\n\n\t{self.name}:
+\t\tCoordinates: {self.coords}
+\t\tType: {self.type}
+\t\tDrones: \n\t\t\t{(chr(10) + (chr(9) * 3)).join([d for d in self.drones])}
+\t\tConnections: \n\t\t\t{(chr(10) + (chr(9) * 3)).join([c.show()
+                                        for c in self._connections])}
+\t\tColor: {self.color}\n\x1b[0m
+"""
+        else:
+            pass
+            
+class Connection():
+    def __init__(self, orig: Zone, dest: Zone,
+                 max_capacity: int = 1):
+        self.orig: Zone = orig
+        self.dest: Zone = dest
+        self.name = f"{self.orig.name}-{self.dest.name}"
+        self.drones: list["str"] = []
+        self.capacity: int = max_capacity
+        self.used: bool = False
+
+    def get_connections(self):
+        return [self.dest]
+
+    def available(self) -> bool:
+        if len(self.drones) < self.capacity\
+                and not self.used:
+            return True
+        return False
+
+    def is_converse(self, c: "Connection") -> bool:
+        if type(c) is not list:
+            return True if self.orig == c.dest and\
+                self.dest == c.orig and\
+                self.capacity == c.capacity else False
+
+    def show(self):
+        return f"{self.orig.name} <=> {self.dest.name}"
 
 
 def parse_config(file: str):
@@ -579,41 +599,28 @@ def next_turn(m: Map) -> tuple[int, int]:
     returns True when all drones reached goal
     False otherwise
     '''
-    # def hasPath(xs: list[tuple[int]], conn: tuple[int, int], counter: int = 0):
-    #     '''
-    #     hasPath returns the number of intermediate vertices
-    #     between two points if a path between nodes
-    #     tuple[0] and tuple[1]
-    #     exists, otherwise -1
-    #     '''
-    #     if (conn[0] == conn[1]):
-    #         return counter
-    #     xsf = [(n, m) for (n, m) in xs if n != conn[0]]
-    #     return next((x for x in [
-    #         hasPath(xsf, (m, conn[1]), counter + 1)
-    #         for (n, m) in xs if n == conn[0]] if x > 0), -1)
     move_count: int = 0
-    moved_drones: list[list[str, Map.Zone.Connection]] = []
+    moved_drones: list[list[str, Connection]] = []
     move_flag: bool = True
     tdata: list[str] = []
     if (m.get_zone("impossible_goal")):
-        goal_zone: Map.Zone = m.get_zone("impossible_goal")
+        goal_zone: Zone = m.get_zone("impossible_goal")
         if len(m.get_zone("impossible_goal").drones) == m.drones:
             return [move_count, 1]
     else:
-        goal_zone: Map.Zone = m.get_zone("goal")
+        goal_zone: Zone = m.get_zone("goal")
         if len(goal_zone.drones) == m.drones:
             return [move_count, 1]
     # flushing locked drones entering into restricted zones
-    # breakpoint()
-    if (len(m.locked) > 0):
-        for d in m.locked:
-            if (d[1].available()):
-                tdata.append(m.move([z for z in m.get_zones()
-                                     if d[0] in z.drones][0],
-                                    d[1], d[0], moved_drones))
-                moved_drones.append(d[0])
-                move_count += 1
+    for d in m.locked:
+        if (d[1].available()):
+            result: str | None = m.move([z for z in( m.get_zones() + m.get_connections())
+                                 if d[0] in z.drones][0],
+                                d[1], d[0])
+            if result != None:
+                tdata.append(result)
+            moved_drones.append(d[0])
+            move_count += 1
     m.locked = []
     # as long as there are moved drones keep checking if zones have been
     # unlocked making more moves are possible, same structure as bubble sort
@@ -624,7 +631,7 @@ def next_turn(m: Map) -> tuple[int, int]:
             # itself can change during iteration, causing elements to be
             # skipped
             for d in z.drones.copy():
-                next_forward_priority: Map.Zone = [
+                next_forward_priority: Zone = [
                     nxtzone for nxtzone in z.possible_moves()
                     if (step_count := Map.hasPath(
                         m.get_graph(),
@@ -635,16 +642,16 @@ def next_turn(m: Map) -> tuple[int, int]:
                     step_count != -1
                     and
                     nxtzone.type == "PRIORITY"]
-                next_forward: Map.Zone = [
+                next_forward: Zone = [
                     nxtzone for nxtzone in z.possible_moves()
-                    if (scount := Map.hasPath(
+                    if (step_count := Map.hasPath(
                         m.get_graph(),
                         (nxtzone.node(m), goal_zone.node(m))))
                     < Map.hasPath(m.get_graph(),
-                              (z.node(m), goal_zone.node(m)))
-                    and scount != -1
+                                  (z.node(m), goal_zone.node(m)))
+                    and step_count != -1
                     and nxtzone.type != "RESTRICTED"]
-                next_forward_restricted: Map.Zone = [
+                next_forward_restricted: Zone = [
                     nxtzone for nxtzone in z.possible_moves()
                     if (step_count := Map.hasPath(
                         m.get_graph(),
@@ -655,42 +662,45 @@ def next_turn(m: Map) -> tuple[int, int]:
                     step_count != -1
                     and
                     nxtzone.type == "RESTRICTED"]
-                # breakpoint()
                 if len(next_forward_priority) > 0 and d\
                         not in [md[0] for md in moved_drones]:
-                    tdata.append(m.move(z, next_forward_priority[0], d,
-                                        moved_drones))
-                    # g.print_grid('', delay=0.3)
+                    result: str | None = m.move(z, next_forward_priority[0], d)
+                    if result != None:
+                        tdata.append(result)
                     move_flag = True
-                    conn: Map.Zone.Connection = [
+                    conn: Connection = [
                         c for c in z.get_connections()
                         if c.dest == next_forward_priority[0]][0]
                     moved_drones.append([d, conn])
                     move_count += 1
-                if len(next_forward) > 0 and d\
+
+                elif len(next_forward) > 0 and d\
                         not in [md[0] for md in moved_drones]:
-                    tdata.append(m.move(z, next_forward[0], d, moved_drones))
-                    # g.print_grid('', delay=0.3)
+                    result: str | None = m.move(z, next_forward[0], d)
+                    if result != None:
+                        tdata.append(result)
                     move_flag = True
-                    conn: Map.Zone.Connection = [
+                    conn: Connection = [
                         c for c in z.get_connections()
                         if c.dest == next_forward[0]][0]
                     moved_drones.append([d, conn])
                     move_count += 1
-                if len(next_forward_restricted) > 0 and d\
+
+                elif len(next_forward_restricted) > 0 and d\
                         not in [md[0] for md in moved_drones]:
-                    # m.move(z, next_forward_restricted[0], d)
-                    rdest: Map.Zone = next_forward_restricted[0]
-                    conn: Map.Zone.Connection = [
+                    rdest: Zone = next_forward_restricted[0]
+                    conn: Connection = [
                         c for c in z.get_connections()
                         if c.dest == next_forward_restricted[0]][0]
-                    m.locked.append((d, rdest))
-                    moved_drones.append([None, conn])
-                    tdata.append(f"{d}-{z.name}-{rdest.name}")
-                    move_flag = True
-                    moved_drones.append([d, conn])
+                    if conn.available():
+                        result: str | None = m.move(z, conn, d)
+                        m.locked.append((d, rdest))
+                        moved_drones.append([d, conn])
+                        if result != None:
+                            tdata.append(f"{d}-{z.name}-{rdest.name}")
+                        move_flag = True
+                    # moved_drones.append([d, conn])
                     move_count += 1
-    print(f"Number of moves in this turn: {move_count}")
     if len(goal_zone.drones) == m.drones:
         return [move_count, 1, tdata]
     if (move_count == 0):

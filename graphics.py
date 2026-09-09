@@ -176,7 +176,7 @@ class Grid():
         return (amap)
 
     @staticmethod
-    def get_conn_coords(grid: "Grid", c: fi.Map.Zone.Connection) -> list[list[int]]:
+    def get_conn_coords(grid: "Grid", c: fi.Connection) -> list[list[int]]:
         src_coord: list[int] = c.orig.coords
         dest_coord: list[int] = c.dest.coords
         return [src_coord, dest_coord]
