@@ -138,6 +138,7 @@ class Grid():
                         self.colors['BACKGROUND'] + self.colors['BG_BG'] +
                         '█' * (self.csize // 2)) + '▫️' +\
                             ('█' * (self.csize // 2)) + self.colors['END']
+        
             #self.rconnect(c)
 
     def base_grid(self, height: int, width: int,
