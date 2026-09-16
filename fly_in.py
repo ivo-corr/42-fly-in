@@ -319,6 +319,8 @@ class Zone():
 
     def possible_moves(self) -> list["Zone"]:
         available: list[Zone] = []
+        for c in self.get_connections():
+            conn_av = c.available()
         [available.append(c.dest) for c in self.get_connections() if
          c.dest.available() and c.available()]
         return available
@@ -344,6 +346,7 @@ class Connection():
         self.dest: Zone = dest
         self.name = f"{self.orig.name}-{self.dest.name}"
         self.drones: list["str"] = []
+        self.transits: int = 0
         self.capacity: int = max_capacity
         self.used: bool = False
 
@@ -351,8 +354,7 @@ class Connection():
         return [self.dest]
 
     def available(self) -> bool:
-        if len(self.drones) < self.capacity\
-                and not self.used:
+        if self.transits < self.capacity:
             return True
         return False
 
@@ -613,10 +615,10 @@ def next_turn(m: Map) -> tuple[int, int]:
     # flushing locked drones entering into restricted zones
     for d in m.locked:
         if (d[1].available()):
-            result: str | None = m.move([z for z in( m.get_zones() + m.get_connections())
+            result: str | None = m.move([z for z in ( m.get_zones() + m.get_connections())
                                  if d[0] in z.drones][0],
                                 d[1], d[0])
-            if result != None:
+            if result is not None:
                 tdata.append(result)
             moved_drones.append(d[0])
             move_count += 1
@@ -636,9 +638,8 @@ def next_turn(m: Map) -> tuple[int, int]:
                         m.get_graph(),
                         (nxtzone.node(m), goal_zone.node(m))))
                     < Map.hasPath(m.get_graph(),
-                                (z.node(m), goal_zone.node(m)))
+                                  (z.node(m), goal_zone.node(m)))
                     and step_count != -1
-                    and nxtzone.available()
                     and nxtzone.type == "PRIORITY"]
                 next_forward: Zone = [
                     nxtzone for nxtzone in z.possible_moves()
@@ -648,7 +649,6 @@ def next_turn(m: Map) -> tuple[int, int]:
                     < Map.hasPath(m.get_graph(),
                                   (z.node(m), goal_zone.node(m)))
                     and step_count != -1
-                    and nxtzone.available()
                     and nxtzone.type != "RESTRICTED"]
                 next_forward_restricted: Zone = [
                     nxtzone for nxtzone in z.possible_moves()
@@ -658,7 +658,6 @@ def next_turn(m: Map) -> tuple[int, int]:
                     < Map.hasPath(m.get_graph(),
                                   (z.node(m), goal_zone.node(m)))
                     and step_count != -1
-                    and nxtzone.available()
                     and nxtzone.type == "RESTRICTED"]
                 if len(next_forward_priority) > 0 and d\
                         not in [md[0] for md in moved_drones]:
@@ -668,7 +667,7 @@ def next_turn(m: Map) -> tuple[int, int]:
                         if c.dest == next_forward_priority[0]][0]
                     if result is not None:
                         tdata.append(result)
-                        conn.used = True
+                        conn.transits += 1
                     move_flag = True
                     moved_drones.append([d, conn])
                     move_count += 1
@@ -681,7 +680,7 @@ def next_turn(m: Map) -> tuple[int, int]:
                         if c.dest == next_forward[0]][0]
                     if result is not None:
                         tdata.append(result)
-                        conn.used = True
+                        conn.transits += 1
                     move_flag = True
                     moved_drones.append([d, conn])
                     move_count += 1
@@ -697,7 +696,7 @@ def next_turn(m: Map) -> tuple[int, int]:
                     moved_drones.append([d, conn])
                     if result is not None:
                         tdata.append(f"{d}-{z.name}-{rdest.name}")
-                        conn.used = True
+                        conn.transits += 1
                     move_flag = True
                     # moved_drones.append([d, conn])
                     move_count += 1
@@ -705,8 +704,8 @@ def next_turn(m: Map) -> tuple[int, int]:
         return [move_count, 1, tdata]
     if (move_count == 0):
         return [move_count, 1, tdata]
-    for c in [c for c in m.get_connections() if c.used is True]:
-        c.used = False
+    for c in [c for c in m.get_connections() if c.transits > 0]:
+        c.transits = 0
     return [move_count, 0, tdata]
 
 
