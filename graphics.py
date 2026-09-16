@@ -135,7 +135,7 @@ class Grid():
                 if ' ' not in self.ascii_grid[p[1]][p[0]]:
                     if len(c[2]) > 0:
                         if (points.index(p) - 1) in range(
-                            (len(points)//2) - (len(c[2])//2),
+                            (len(points)//2) - (len(c[2])//2) - 1,
                             (len(points)//2) + len(c[2]) - (len(c[2])//2) + 1):
                             self.ascii_grid[p[1] - 1][p[0]] = (
                                 self.colors['BACKGROUND'] +
