@@ -190,25 +190,16 @@ class Map():
             raise SemanticError(Message='There must be at least one path'
                                 'from start zone to goal zone')
 
-
-
     def move(self, z1: "Zone",
              z2: "Zone", d: str):
         # check that z1, z2, and d exist.
         if ({z1, z2, d} & set(self.get_zones() + self.get_connections() + z1.drones) == {z1, z2, d}
-            and (z2 in [(c.dest if type(c) is Connection else c) for c in z1.get_connections()] or z2 in z1.get_connections())):
-        # check that the amount of drones moved through
-        # the connection so far is lower than the connection's capacity.
-            if (len([c for c in self.moved_drones
-                         if c[1] == [c for c in z1.get_connections()
-                                     if c.dest == z2][0]]) <
-                [c for c in z1.get_connections()
-                    if ((c.dest if type(c) is Connection else c) == z2)][0].capacity):
-                z1.drones.remove(d)
-                z2.drones.append(d)
-                return (f"{d}-{z2.name}")
-            else:
-                return None
+                and (z2 in [(c.dest if type(c) is Connection else c) for c in z1.get_connections()] or z2 in z1.get_connections())):
+            # check that the amount of drones moved through
+            # the connection so far is lower than the connection's capacity.
+            z1.drones.remove(d)
+            z2.drones.append(d)
+            return (f"{d}-{z2.name}")
         else:
             raise Exception(
                 f'''\x1b[43mMap.move ERROR:\nOne of the following is\

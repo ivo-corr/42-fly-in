@@ -43,7 +43,7 @@ class Grid():
         #     filter(lambda x: x.dest.coords[0] > x.orig.coords[0],
         #            self.connections))
         self.raw_zones: list[list[int]] = []
-        self.raw_connections: list[list[list[int]]] = []
+        self.raw_connections: list[list[list[int], list[str]]] = []
         # we translate each connection to a set of coordinates
         self.conn_coordinates: list[list[list[int]]] = list(
             map(lambda x: Grid.get_conn_coords(x),
@@ -72,7 +72,6 @@ class Grid():
         if abs(delta_x) * abs(delta_y) > 0:
             # draw diagonal
             if delta_y > 0:
-                breakpoint()
                 self.ascii_grid[conn[0][1]][conn[0][0]] = (
                     self.colors['BACKGROUND'] + self.colors['BG_BG'] +
                     '█' * (self.csize // 2)) + '▫️' +\
@@ -134,10 +133,19 @@ class Grid():
             points: list[tuple[int, int]] = self.bresenham(c[0][0], c[0][1], c[1][0], c[1][1])
             for p in points:
                 if ' ' not in self.ascii_grid[p[1]][p[0]]:
+                    if (points.index(p) - 1) in range(
+                        (len(points)//2) - 2,
+                        (len(points)//2) + len(c[2]) - 2):
+                        self.ascii_grid[p[1] - 1][p[0]] = (
+                            self.colors['BACKGROUND'] +
+                            '█' * ((self.csize // 2) - 1)) + c[2][0] +\
+                                ('█' * (self.csize // 2)) + self.colors['END']
+                        c[2].remove(c[2][0])
                     self.ascii_grid[p[1]][p[0]] = (
                         self.colors['BACKGROUND'] + self.colors['BG_BG'] +
                         '█' * (self.csize // 2)) + '▫️' +\
                             ('█' * (self.csize // 2)) + self.colors['END']
+            
             #self.rconnect(c)
 
     def base_grid(self, height: int, width: int,
@@ -146,7 +154,6 @@ class Grid():
         for r in range(2 + (height + ((height - 1) * vpad))):
             row: list[str] = []
             for c in range(2 + (width + ((width - 1) * hpad))):
-                # breakpoint()
                 if not ((r % (vpad + 1) == 1) and (c % (hpad + 1) == 1)):
                     row.append(self.scaffolding)
                 elif (self.tr([c, r]) in
@@ -172,7 +179,7 @@ class Grid():
             destination = list(
                 filter(lambda x: self.tr(x) == c.dest.coords, self.raw_zones))[
                     0]
-            self.raw_connections.append([origin, destination])
+            self.raw_connections.append([origin, destination, c.drones.copy()])
         return (amap)
 
     @staticmethod
