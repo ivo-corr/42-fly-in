@@ -606,14 +606,17 @@ def next_turn(m: Map) -> tuple[int, int]:
     # flushing locked drones entering into restricted zones
     for d in m.locked:
         if (d[1].available()):
-            result: str | None = m.move([z for z in ( m.get_zones() + m.get_connections())
-                                 if d[0] in z.drones][0],
-                                d[1], d[0])
+            conn: Connection = [
+                z for z in (m.get_zones() + m.get_connections())
+                if d[0] in z.drones][0]
+            result: str | None = m.move(conn, d[1], d[0])
             if result is not None:
                 tdata.append(result)
-            moved_drones.append(d[0])
-            move_count += 1
-    m.locked = []
+                moved_drones.append([d[0], conn])
+                conn.transits += 1
+                m.locked.remove((d[0], d[1]))
+                move_count += 1
+
     # as long as there are moved drones keep checking if zones have been
     # unlocked making more moves are possible, same structure as bubble sort
     while (move_flag):
