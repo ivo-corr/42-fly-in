@@ -133,14 +133,15 @@ class Grid():
             points: list[tuple[int, int]] = self.bresenham(c[0][0], c[0][1], c[1][0], c[1][1])
             for p in points:
                 if ' ' not in self.ascii_grid[p[1]][p[0]]:
-                    if (points.index(p) - 1) in range(
-                        (len(points)//2) - 2,
-                        (len(points)//2) + len(c[2]) - 2):
-                        self.ascii_grid[p[1] - 1][p[0]] = (
-                            self.colors['BACKGROUND'] +
-                            '█' * ((self.csize // 2) - 1)) + c[2][0] +\
+                    if len(c[2]) > 0:
+                        if (points.index(p) - 1) in range(
+                            (len(points)//2) - (len(c[2])//2),
+                            (len(points)//2) + len(c[2]) - (len(c[2])//2) + 1):
+                            self.ascii_grid[p[1] - 1][p[0]] = (
+                                self.colors['BACKGROUND'] +
+                                '█' * ((self.csize // 2) - 1)) + c[2][0] +\
                                 ('█' * (self.csize // 2)) + self.colors['END']
-                        c[2].remove(c[2][0])
+                            c[2].remove(c[2][0])
                     self.ascii_grid[p[1]][p[0]] = (
                         self.colors['BACKGROUND'] + self.colors['BG_BG'] +
                         '█' * (self.csize // 2)) + '▫️' +\
