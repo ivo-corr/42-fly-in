@@ -197,8 +197,13 @@ class Map():
                 and (z2 in [(c.dest if type(c) is Connection else c) for c in z1.get_connections()] or z2 in z1.get_connections())):
             # check that the amount of drones moved through
             # the connection so far is lower than the connection's capacity.
-            z1.drones.remove(d)
-            z2.drones.append(d)
+            if type(z2) is Connection:
+                if len(z2.drones) < z2.dest.capacity:
+                    z1.drones.remove(d)
+                    z2.drones.append(d)
+            else:
+                z1.drones.remove(d)
+                z2.drones.append(d)
             return (f"{d}-{z2.name}")
         else:
             raise Exception(
@@ -686,13 +691,12 @@ def next_turn(m: Map) -> tuple[int, int]:
                         c for c in z.get_connections()
                         if c.dest == next_forward_restricted[0]][0]
                     result: str | None = m.move(z, conn, d)
-                    m.locked.append((d, rdest))
-                    moved_drones.append([d, conn])
                     if result is not None:
+                        m.locked.append((d, rdest))
+                        moved_drones.append([d, conn])
                         tdata.append(f"{d}-{z.name}-{rdest.name}")
                         conn.transits += 1
                     move_flag = True
-                    # moved_drones.append([d, conn])
                     move_count += 1
     if len(goal_zone.drones) == m.drones:
         return [move_count, 1, tdata]
