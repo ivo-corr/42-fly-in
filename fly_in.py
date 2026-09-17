@@ -609,7 +609,7 @@ def next_turn(m: Map) -> tuple[int, int]:
         if len(goal_zone.drones) == m.drones:
             return [move_count, 1]
     # flushing locked drones entering into restricted zones
-    for d in m.locked:
+    for d in m.locked.copy():
         if (d[1].available()):
             conn: Connection = [
                 z for z in (m.get_zones() + m.get_connections())
