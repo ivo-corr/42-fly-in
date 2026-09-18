@@ -79,7 +79,8 @@ class Grid():
             self.rconnect([[conn[0][0] + 1, conn[0][1] - 1], conn[1]])
         else:
             if delta_x > 0:
-                if ' ' not in self.ascii_grid[conn[0][1]][conn[0][0]]:
+                if ' ' not in self.ascii_grid[conn[0][1]][conn[0][0]]\
+                    and 'D' not in self.ascii_grid[conn[0][1]][conn[0][0]]:
                     if (a_char == ''):
                         self.ascii_grid[conn[0][1]][conn[0][0]] = (
                             self.colors['BACKGROUND'] + self.colors['BG_BG'] +
@@ -93,7 +94,8 @@ class Grid():
                                 ('█' * (self.csize // 2)) + self.colors['END']
                 self.rconnect([[conn[0][0] + 1, conn[0][1]], conn[1]])
             if delta_x == 0 and delta_y != 0:
-                if ' ' not in self.ascii_grid[conn[0][1]][conn[0][0]]:
+                if ' ' not in self.ascii_grid[conn[0][1]][conn[0][0]]\
+                    and 'D' not in self.ascii_grid[conn[0][1]][conn[0][0]]:
                     if (a_char == ''):
                         self.ascii_grid[conn[0][1]][conn[0][0]] = (
                             self.colors['BACKGROUND'] + self.colors['BG_BG'] +
@@ -132,7 +134,8 @@ class Grid():
         for c in self.raw_connections:
             points: list[tuple[int, int]] = self.bresenham(c[0][0], c[0][1], c[1][0], c[1][1])
             for p in points:
-                if ' ' not in self.ascii_grid[p[1]][p[0]]:
+                if ' ' not in self.ascii_grid[p[1]][p[0]]\
+                    and 'D' not in self.ascii_grid[p[1]][p[0]]:
                     if len(c[2]) > 0:
                         if (points.index(p) - 1) in range(
                             (len(points)//2) - (len(c[2])//2) - 1,
