@@ -315,8 +315,8 @@ class Zone():
 
     def possible_moves(self) -> list["Zone"]:
         available: list[Zone] = []
-        for c in self.get_connections():
-            conn_av = c.available()
+        # for c in self.get_connections():
+        #     conn_av = c.available()
         [available.append(c.dest) for c in self.get_connections() if
          c.dest.available() and c.available()]
         return available
@@ -350,7 +350,7 @@ class Connection():
         return [self.dest]
 
     def available(self) -> bool:
-        if self.transits < self.capacity:
+        if self.transits + len(self.drones) < self.capacity:
             return True
         return False
 
@@ -696,8 +696,8 @@ def next_turn(m: Map) -> tuple[int, int]:
                         moved_drones.append([d, conn])
                         tdata.append(f"{d}-{z.name}-{rdest.name}")
                         conn.transits += 1
-                    move_flag = True
-                    move_count += 1
+                        move_flag = True
+                        move_count += 1
     if len(goal_zone.drones) == m.drones:
         return [move_count, 1, tdata]
     if (move_count == 0):
