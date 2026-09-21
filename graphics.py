@@ -186,12 +186,15 @@ class Grid():
             amap.append(row)
         for cn in self.connections:
             origin = list(
-                filter(lambda x: self.tr(x) == cn.orig.coords, self.raw_zones))[
+                filter(
+                    lambda x: self.tr(x) == cn.orig.coords, self.raw_zones))[
                     0]
             destination = list(
-                filter(lambda x: self.tr(x) == cn.dest.coords, self.raw_zones))[
+                filter(
+                    lambda x: self.tr(x) == cn.dest.coords, self.raw_zones))[
                     0]
-            self.raw_connections.append([origin, destination, cn.drones.copy()])
+            self.raw_connections.append(
+                [origin, destination, cn.drones.copy()])
         return (amap)
 
     @staticmethod

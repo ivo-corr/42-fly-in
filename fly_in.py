@@ -40,7 +40,8 @@ class Map():
     move_count: int = 0
 
     @staticmethod
-    def hasPath(xs: list[tuple[int, int]], conn: tuple[int, int], counter: int = 0)\
+    def hasPath(xs: list[tuple[int, int]], conn: tuple[int, int],
+                counter: int = 0)\
             -> int:
         '''
         hasPath returns the number of intermediate vertices
@@ -55,7 +56,8 @@ class Map():
             Map.hasPath(xsf, (m, conn[1]), counter + 1)
             for (n, m) in xs if n == conn[0]] if x > 0), -1)
 
-    def __init__(self, pconfig: str):
+    def __init__(self,
+                 pconfig: list[list[str] | list[list[list[str]]]] | None):
         self._zones: list[Zone] = []
         self.dimensions: list[int] = [0, 0]
         self.drones: int = 0
@@ -66,24 +68,30 @@ class Map():
         delta denotes the y-axis offset caused by the weird negative index
         notation that was chosen for the map config files
         '''
+        if pconfig is None:
+            return
         for c in pconfig:
             meta: list[list[str]] = [
                 [md.lower()] for md in Metadata.__members__ if
                 md.lower() in c[1]]
             if ("nb_drones" in c[0]):
-                self.drones = int(c[1])
+                if (type(c[1]) is str):
+                    self.drones = int(c[1])
             if ('hub' in c[0]):
                 # this branch of the if-else manages cases where we have
                 # coordinates in the y-axis
                 color: str = "NONE"
                 if "color" in c[1]:
-                    color = c[1].split("color=")[1].upper()
+                    if type(c[1]) is str:
+                        color = c[1].split("color=")[1].upper()
                     if len(color.split(" ")) == 1:
                         color = color.split("]")[0]
                     else:
                         color = color.split(' ')[0]
                     if color not in Map.colors:
                         color = Map.colors[0]
+                if type(c[1]) is not str:
+                    return
                 if int(c[1].split(" ")[1:3][1]) < 0:
                     absolute: int = abs(int(c[1].split(" ")[1:3][1]))
                     if (absolute > delta):
@@ -98,6 +106,8 @@ class Map():
                         zone_md = zsplit.split(" ")[0]\
                             if len(zsplit.split(" ")) > 1\
                             else zsplit.split("]")[0]
+                    if type(c[0]) is not str:
+                        return
                     self._zones.append(
                         Zone(
                             name := c[1].split(" ")[0],
@@ -130,6 +140,8 @@ class Map():
                         zone_md = zsplit.split(" ")[0]\
                             if len(zsplit.split(" ")) > 1\
                             else zsplit.split("]")[0]
+                    if (type(c[0]) is not str):
+                        return
                     self._zones.append(
                         Zone(name := c[1].split(" ")[0],
                              c[0],
@@ -146,6 +158,8 @@ class Map():
                     self.dimensions[0] = int(tmp[0])
                 if (int(tmp[1]) > self.dimensions[1]):
                     self.dimensions[1] = int(tmp[1])
+            if type(c[0]) is not str or type(c[1]) is not str:
+                return
             if (c[0].lower() == "connection"):
                 origen: str = c[1].split("-")[0]
                 destination: str = dst\
@@ -263,7 +277,7 @@ to '{z2.name}'\x1b[0m''')
     #     if (len(goal_zone.drones)) == m.drones:
     #         return 1
 
-    #     # flush drones from connections into their corresponding restricted 
+    #     # flush drones from connections into their corresponding restricted
     # zones
     #     for d in self.locked:
     #         self.move(d[1][0], d[1][1], d[0])
@@ -374,7 +388,8 @@ def parse_config(file: str) -> list[list[str] | list[list[list[str]]]]:
                 raise InputFileError(
                     cline,
                     cline_nr,
-                    Message=f'\'{metas[0].upper()}\' is not a valid property.\n'
+                    Message=f'\'{metas[0].upper()}\''
+                    'is not a valid property.\n'
                     f'Valid properties: {list(Metadata.__members__.keys())}')
             if type.lower() == 'hub':
                 if meta[0].lower() == 'max_link_capacity':
@@ -512,7 +527,7 @@ def parse_config(file: str) -> list[list[str] | list[list[list[str]]]]:
             #                     [z[1].split(' ')[0]
             #                      for z in result[1:]
             #                      if z[0] != 'connection'],
-            #                     [cs for cs in result if cs[0] == 'connection'])
+            #                   [cs for cs in result if cs[0] == 'connection'])
         if result[i][0] == 'start_hub':
             sh_count += 1
         if result[i][0] == 'end_hub':
@@ -656,7 +671,9 @@ def next_turn(m: Map) -> tuple[int, int, list[str]]:
             # itself can change during iteration, causing elements to be
             # skipped
             for dr in z.drones.copy():
-                next_forward_priority: Zone = [
+                if goal_zone is None:
+                    continue
+                next_forward_priority: list[Zone] = [
                     nxtzone for nxtzone in z.possible_moves()
                     if (step_count := Map.hasPath(
                         m.get_graph(),
@@ -665,7 +682,7 @@ def next_turn(m: Map) -> tuple[int, int, list[str]]:
                                   (z.node(m), goal_zone.node(m)))
                     and step_count != -1
                     and nxtzone.type == "PRIORITY"]
-                next_forward: Zone = [
+                next_forward: list[Zone] = [
                     nxtzone for nxtzone in z.possible_moves()
                     if (step_count := Map.hasPath(
                         m.get_graph(),
@@ -674,7 +691,7 @@ def next_turn(m: Map) -> tuple[int, int, list[str]]:
                                   (z.node(m), goal_zone.node(m)))
                     and step_count != -1
                     and nxtzone.type != "RESTRICTED"]
-                next_forward_restricted: Zone = [
+                next_forward_restricted: list[Zone] = [
                     nxtzone for nxtzone in z.possible_moves()
                     if (step_count := Map.hasPath(
                         m.get_graph(),
@@ -685,21 +702,21 @@ def next_turn(m: Map) -> tuple[int, int, list[str]]:
                     and nxtzone.type == "RESTRICTED"]
                 if len(next_forward_priority) > 0 and dr\
                         not in [md[0] for md in moved_drones]:
-                    result: str | None = m.move(z, next_forward_priority[0], d)
-                    conn: Connection = [
+                    result = m.move(z, next_forward_priority[0], dr)
+                    conn = [
                         c for c in z.get_connections()
                         if c.dest == next_forward_priority[0]][0]
                     if result is not None:
                         tdata.append(result)
                         conn.transits += 1
                     move_flag = True
-                    moved_drones.append((d, conn))
+                    moved_drones.append((dr, conn))
                     move_count += 1
 
                 elif len(next_forward) > 0 and dr\
                         not in [md[0] for md in moved_drones]:
-                    result: str | None = m.move(z, next_forward[0], dr)
-                    conn: Connection = [
+                    result = m.move(z, next_forward[0], dr)
+                    conn = [
                         c for c in z.get_connections()
                         if c.dest == next_forward[0]][0]
                     if result is not None:
@@ -711,31 +728,32 @@ def next_turn(m: Map) -> tuple[int, int, list[str]]:
 
                 elif len(next_forward_restricted) > 0 and dr\
                         not in [md[0] for md in moved_drones]:
-                    rdest: Zone = next_forward_restricted[0]
-                    conn: Connection = [
+                    rdest = next_forward_restricted[0]
+                    conn = [
                         c for c in z.get_connections()
                         if c.dest == next_forward_restricted[0]][0]
-                    result: str | None = m.move(z, conn, dr)
+                    result = m.move(z, conn, dr)
                     if result is not None:
                         m.locked.append((dr, rdest))
                         moved_drones.append((dr, conn))
-                        tdata.append(f"{d}-{z.name}-{rdest.name}")
+                        tdata.append(f"{dr}-{z.name}-{rdest.name}")
                         conn.transits += 1
                         move_flag = True
                         move_count += 1
-    if len(goal_zone.drones) == m.drones:
-        return (move_count, 1, tdata)
-    if (move_count == 0):
-        return (move_count, 1, tdata)
-    for c in [c for c in m.get_connections() if c.transits > 0]:
-        c.transits = 0
+    if goal_zone is not None:
+        if len(goal_zone.drones) == m.drones:
+            return (move_count, 1, tdata)
+        if (move_count == 0):
+            return (move_count, 1, tdata)
+        for c in [c for c in m.get_connections() if c.transits > 0]:
+            c.transits = 0
     return (move_count, 0, tdata)
 
 
 if __name__ == "__main__":
     import graphics
 
-    def prompt():
+    def prompt() -> str:
         cmd: str = input("\n## ")
         if (cmd.upper() == 'Q'):
             exit()
@@ -751,7 +769,7 @@ if __name__ == "__main__":
 ██║     ███████╗██║          ██║██║ ╚████║
 ╚═╝     ╚══════╝╚═╝          ╚═╝╚═╝  ╚═══╝
 '''
-    pconfig: str = select_map()
+    pconfig: list[list[str] | list[list[list[str]]]] | None = select_map()
     if pconfig is None:
         exit(-1)
     try:
