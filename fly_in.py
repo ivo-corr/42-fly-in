@@ -618,7 +618,7 @@ def parse_config(file: str) -> list[list[str] | list[list[list[str]]]]:
                 Message="Connections must connect existing zones"
             )
         # second, check if there are equivalent connections
-        if (converse_conn in [c[1] for c in conns]):
+        if (converse_conn in conns):
             raise InputFileError(
                 line, line_nr, Message="There must not be any "
                 "duplicate connections"
