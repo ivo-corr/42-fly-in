@@ -40,7 +40,8 @@ class Map():
     move_count: int = 0
 
     @staticmethod
-    def hasPath(xs: list[tuple[int]], conn: tuple[int, int], counter: int = 0):
+    def hasPath(xs: list[tuple[int, int]], conn: tuple[int, int], counter: int = 0)\
+            -> int:
         '''
         hasPath returns the number of intermediate vertices
         between two points if a path between nodes
@@ -58,7 +59,7 @@ class Map():
         self._zones: list[Zone] = []
         self.dimensions: list[int] = [0, 0]
         self.drones: int = 0
-        self.locked: tuple[str, (Connection, Zone)] = []
+        self.locked: list[tuple[str, Connection | Zone]] = []
         self.moved_drones: list[str] = []
         delta: int = 0
         '''
@@ -89,11 +90,11 @@ class Map():
                         for z in self._zones:
                             z.coords = [z.coords[0], z.coords[1] + absolute]
                     if ["max_drones"] in meta:
-                        md: int = c[1].split("max_drones=")[1]
+                        md: str = c[1].split("max_drones=")[1]
                         md = md.split("]")[0] if ']' in\
                             md else md.split(' ')[0]
                     if ['zone'] in meta:
-                        zsplit: list[str] = c[1].split("zone=")[1]
+                        zsplit: str = c[1].split("zone=")[1]
                         zone_md = zsplit.split(" ")[0]\
                             if len(zsplit.split(" ")) > 1\
                             else zsplit.split("]")[0]
@@ -120,12 +121,12 @@ class Map():
                     tmp = c[1].split(" ")[1:3]
                     tmp[1] = str(int(tmp[1]) + delta)
                     if ["max_drones"] in meta:
-                        drones_md: int = c[1].split("max_drones=")[1]
+                        drones_md: str = c[1].split("max_drones=")[1]
                         drones_md = drones_md.split("]")[0] if ']' in\
                             drones_md else md.split(' ')[0]
-                    zone_md: str = "NORMAL"
+                    zone_md = "NORMAL"
                     if ['zone'] in meta:
-                        zsplit: list[str] = c[1].split("zone=")[1]
+                        zsplit = c[1].split("zone=")[1]
                         zone_md = zsplit.split(" ")[0]\
                             if len(zsplit.split(" ")) > 1\
                             else zsplit.split("]")[0]
@@ -180,15 +181,19 @@ class Map():
             raise SemanticError("The capacity of the end zone"
                                 " can't be lower than the number of drones in "
                                 "the circuit")
+        start: Zone | None = self.get_zone('start')
+        goal: Zone | None = self.get_zone('goal')
+        assert start is not None
+        assert goal is not None
         if Map.hasPath(
                     self.get_graph(),
-                    (self.get_zone('start').node(self),
-                     self.get_zone('goal').node(self))) == -1:
+                    (start.node(self),
+                     goal.node(self))) == -1:
             raise SemanticError(Message='There must be at least one path'
                                 'from start zone to goal zone')
 
     def move(self, z1: "Zone",
-             z2: "Zone", d: str):
+             z2: "Zone | Connection", d: str) -> str:
         # check that z1, z2, and d exist.
         elements = {
             *self.get_zones(),
@@ -199,7 +204,8 @@ class Map():
                 and (z2 in
                      [(c.dest if type(c) is Connection else c)
                       for c in z1.get_connections()]
-                     or z2 in z1.get_connections())):
+                     or (isinstance(z2, Connection))
+                     and z2 in z1.get_connections())):
             # check that the amount of drones moved through
             # the connection so far is lower than the connection's capacity.
             if type(z2) is Connection:
@@ -229,13 +235,13 @@ to '{z2.name}'\x1b[0m''')
             only_occupied: bool = False) -> list["Connection"]:
         return [c for z in m._zones for c in z.get_connections()]
 
-    def get_zone(self, name: str) -> "Zone":
+    def get_zone(self, name: str) -> "Zone | None":
         found_zone = [z for z in self.get_zones() if z.name == name.lower()]
         if len(found_zone) == 1:
             return found_zone[0]
         return None
 
-    def get_graph(self):
+    def get_graph(self) -> list[tuple[int, int]]:
         vertices: list[tuple[int, int]] = []
         for zi in range(len(self._zones)):
             for c in [z
@@ -281,7 +287,7 @@ class Zone():
         for dn in range(drones):
             self.drones.append("D"+str(dn))
 
-    def set_connection(self, dest: "Zone", capacity: int = -1):
+    def set_connection(self, dest: "Zone", capacity: int = -1) -> None:
         self._connections.append(Connection(
             self, dest, max_capacity=capacity))
 
@@ -308,11 +314,14 @@ class Zone():
         available: list[Zone] = []
         # for c in self.get_connections():
         #     conn_av = c.available()
-        [available.append(c.dest) for c in self.get_connections() if
-         c.dest.available() and c.available()]
+        for c in self.get_connections():
+            if c.dest.available() and c.available():
+                available.append(c.dest)
+        # [available.append(c.dest) for c in self.get_connections() if
+        #  c.dest.available() and c.available()]
         return available
 
-    def show(self, mode: int = 0):
+    def show(self, mode: int = 0) -> str:
         if mode == 0:
             return f"""\x1b[46m\n\n\t{self.name}:
 \t\tCoordinates: {self.coords}
@@ -323,7 +332,7 @@ class Zone():
 \t\tColor: {self.color}\n\x1b[0m
 """
         else:
-            pass
+            return ''
 
 
 class Connection():
@@ -337,7 +346,7 @@ class Connection():
         self.capacity: int = max_capacity
         self.used: bool = False
 
-    def get_connections(self):
+    def get_connections(self) -> list[Zone]:
         return [self.dest]
 
     def available(self) -> bool:
@@ -345,33 +354,27 @@ class Connection():
             return True
         return False
 
-    def is_converse(self, c: "Connection") -> bool:
-        if type(c) is not list:
-            return True if self.orig == c.dest and\
-                self.dest == c.orig and\
-                self.capacity == c.capacity else False
-
-    def show(self):
+    def show(self) -> str:
         return f"{self.orig.name} <=> {self.dest.name}"
 
 
-def parse_config(file: str):
-    def validate_md(meta: str, type: str):
+def parse_config(file: str) -> None:
+    def validate_md(meta: str, type: str) -> None:
         if (ml := len(meta.split(' '))) == 1:
-            meta = meta.split('=')
-            if (len(meta) != 2):
+            metas = meta.split('=')
+            if (len(metas) != 2):
                 raise InputFileError(
                     cline,
                     cline_nr,
                     Message='Metadata must be specified '
                     'as \'<property>=<value>\'')
             try:
-                Metadata[meta[0].upper()]
+                Metadata[metas[0].upper()]
             except KeyError:
                 raise InputFileError(
                     cline,
                     cline_nr,
-                    Message=f'\'{meta[0].upper()}\' is not a valid property.\n'
+                    Message=f'\'{metas[0].upper()}\' is not a valid property.\n'
                     f'Valid properties: {list(Metadata.__members__.keys())}')
             if type.lower() == 'hub':
                 if meta[0].lower() == 'max_link_capacity':
@@ -379,32 +382,32 @@ def parse_config(file: str):
                         cline,
                         cline_nr,
                         Message='MAX_LINK_CAPACITY is not a property of hubs')
-                if meta[0].lower() == 'zone' and\
-                        meta[1].upper()\
+                if metas[0].lower() == 'zone' and\
+                        metas[1].upper()\
                         not in list(ZoneType.__members__.keys()):
                     raise InputFileError(
                         cline,
                         cline_nr,
-                        Message=f'\'{meta[1]}\' is not a valid Zone type.\n'
+                        Message=f'\'{metas[1]}\' is not a valid Zone type.\n'
                         f'Zone types: {list(ZoneType.__members__.keys())}')
-                if meta[0].lower() == 'max_drones':
+                if metas[0].lower() == 'max_drones':
                     try:
-                        int(meta[1])
+                        int(metas[1])
                     except Exception:
                         raise InputFileError(
                             cline,
                             cline_nr,
                             Message='max_drones should be an integer')
             if type.lower() == 'connection':
-                if meta[0].lower() != 'max_link_capacity':
+                if metas[0].lower() != 'max_link_capacity':
                     raise InputFileError(
                         cline,
                         cline_nr,
                         Message='Connections can only have MAX_LINK_CAPACITY'
                         ' as a property.')
-                if meta[0].lower() == 'max_link_capacity':
+                if metas[0].lower() == 'max_link_capacity':
                     try:
-                        int(meta[1])
+                        int(metas[1])
                     except Exception:
                         raise InputFileError(
                             cline,
@@ -414,7 +417,7 @@ def parse_config(file: str):
             for p in meta.split(' '):
                 validate_md(p, type)
 
-    def validate_hub(line: str, line_nr: int):
+    def validate_hub(line: str, line_nr: int) -> None:
         splat: list[str] = line.split(": ")
         if (len((m := splat[1].split('['))) > 1):
             meta: str = m[1][:-1]
@@ -432,7 +435,7 @@ def parse_config(file: str):
                                  "be integers")
 
     def validate_connection(line: str, line_nr: int, zones: list[str],
-                            conns: list[str]):
+                            conns: list[str]) -> None:
         conn: str = line.split(": ")[1].split(" [")[0]
         src: str
         dst: str
@@ -460,7 +463,7 @@ def parse_config(file: str):
          [ss.split(": ") for ss in splat if len(ss.split(": ")) == 2]])
     if result[0][0] != 'nb_drones':
         raise InputFileError(
-            [li for li in splat if result[0][0] in li][0],
+            '',
             1,
             Message="The first line of the input file must specify the "
             "number of drones in the circuit: 'nb_drones: <int>'"
@@ -468,12 +471,16 @@ def parse_config(file: str):
     sh_count: int = 0
     eh_count: int = 0
     for i in range(len(result)):
-        cline: str = result[i][0] + ': ' + result[i][1]
+        r: str | list[list[str]] = result[i][0]
+        rr: str | list[list[str]] = result[i][1]
+        if type(r) is str and type(rr) is str:
+            cline: str = r + ': ' + rr
         cline_nr: int = file.split("\n").index(cline) + 1
         if (i == 0):
             if (result[i][0] == 'nb_drones'):
                 try:
-                    int(result[i][1])
+                    if type(rr) is str:
+                        int(rr)
                 except ValueError:
                     raise InputFileError(
                         cline,
@@ -731,7 +738,7 @@ if __name__ == "__main__":
     print(f"Map size: {m.dimensions}")
     g: graphics.Grid = graphics.Grid(m, 3, vpad=5, hpad=5)
     msg = "\nR: run simulation\nN: next turn\nS: select map\nQ: quit"
-    g.print_grid(m.show()+msg, delay=0.3)
+    g.print_grid(msg, delay=0.3)
     cmd: str = prompt()
     turn: int = 0
     finished: int

@@ -1,8 +1,9 @@
 import fly_in as fi
 from time import sleep
+from typing import Any
 
 
-def pr_grid(grid: list[list[str]]):
+def pr_grid(grid: list[list[str]]) -> None:
     for row in grid:
         for column in row:
             print(column, end='')
@@ -10,6 +11,7 @@ def pr_grid(grid: list[list[str]]):
 
 
 class Grid():
+    bg = '\x1b[90m'
     colors = {
         'NONE': '',
         'GREEN': '\x1b[42m',
@@ -24,7 +26,7 @@ class Grid():
         'MAGENTA': '\x1b[45m',
         'GOLD': '\x1b[48;5;220m',
         "NOT_FOUND": '',
-        'BACKGROUND': (bg := '\x1b[90m'),
+        'BACKGROUND': bg,
         'BG_BG': '\x1b[' + str(int(bg.split("[")[1][:-1]) + 10) + 'm',
         'END': '\x1b[0m'
     }
@@ -32,9 +34,9 @@ class Grid():
     def __init__(self, m: fi.Map, csize: int = 6,
                  vpad: int = 1, hpad: int = 1) -> None:
         self.map: fi.Map = m
-        self.zones: list[fi.Map.Zone] = self.map.get_zones()
+        self.zones: list[fi.Zone] = self.map.get_zones()
         # we unpack all connections in a flat list
-        self.connections: list[fi.Map.Zone.Connection] = [
+        self.connections: list[fi.Connection] = [
             element for sublist in [ee for ee in [
                 c for c in [z.get_connections() for z in self.zones]
                 ]] for element in sublist]
@@ -43,11 +45,11 @@ class Grid():
         #     filter(lambda x: x.dest.coords[0] > x.orig.coords[0],
         #            self.connections))
         self.raw_zones: list[list[int]] = []
-        self.raw_connections: list[list[list[int], list[str]]] = []
+        self.raw_connections: list[list[list[Any]]] = []
         # we translate each connection to a set of coordinates
-        self.conn_coordinates: list[list[list[int]]] = list(
-            map(lambda x: Grid.get_conn_coords(x),
-                self.raw_connections))
+        # self.conn_coordinates: list[list[list[int]]] = list(
+        #     map(lambda x: Grid.get_conn_coords(x),
+        #         self.raw_connections))
         # cell size
         self.csize: int = csize
         # vertical padding: amount of scaffolding between cells vertically
@@ -64,7 +66,7 @@ class Grid():
             self.vpad, hpad=self.hpad)
 
     def rconnect(self, conn: list[list[int]], delay: int = 0,
-                 a_char: str = ''):
+                 a_char: str = '') -> bool:
         delta_x: int = conn[1][0] - conn[0][0]
         delta_y: int = conn[1][1] - conn[0][1]
         if delta_x == 0 and delta_y == 0:
@@ -108,14 +110,16 @@ class Grid():
                     self.rconnect([[conn[0][0], conn[0][1] + 1], conn[1]])
                 elif delta_y < 0:
                     self.rconnect([[conn[0][0], conn[0][1] - 1], conn[1]])
+        return False
 
-    def bresenham(self, x0, y0, x1, y1):
-        points = []
-        dx = abs(x1 - x0)
-        dy = -abs(y1 - y0)
-        sx = 1 if x0 < x1 else -1
-        sy = 1 if y0 < y1 else -1
-        err = dx + dy
+    def bresenham(self, x0: int, y0: int, x1: int, y1: int)\
+            -> list[tuple[int, int]]:
+        points: list[tuple[int, int]] = []
+        dx: int = abs(x1 - x0)
+        dy: int = -abs(y1 - y0)
+        sx: int = 1 if x0 < x1 else -1
+        sy: int = 1 if y0 < y1 else -1
+        err: int = dx + dy
 
         while True:
             points.append((x0, y0))
@@ -130,7 +134,7 @@ class Grid():
                 y0 += sy
         return points
 
-    def connect_grid(self):
+    def connect_grid(self) -> None:
         for c in self.raw_connections:
             points: list[tuple[int, int]] =\
                 self.bresenham(c[0][0], c[0][1], c[1][0], c[1][1])
@@ -180,23 +184,23 @@ class Grid():
                     if (True):
                         row.append(self.scaffolding)
             amap.append(row)
-        for c in self.connections:
+        for cn in self.connections:
             origin = list(
-                filter(lambda x: self.tr(x) == c.orig.coords, self.raw_zones))[
+                filter(lambda x: self.tr(x) == cn.orig.coords, self.raw_zones))[
                     0]
             destination = list(
-                filter(lambda x: self.tr(x) == c.dest.coords, self.raw_zones))[
+                filter(lambda x: self.tr(x) == cn.dest.coords, self.raw_zones))[
                     0]
-            self.raw_connections.append([origin, destination, c.drones.copy()])
+            self.raw_connections.append([origin, destination, cn.drones.copy()])
         return (amap)
 
     @staticmethod
-    def get_conn_coords(grid: "Grid", c: fi.Connection) -> list[list[int]]:
-        src_coord: list[int] = c.orig.coords
-        dest_coord: list[int] = c.dest.coords
+    def get_conn_coords(c: fi.Connection) -> list[tuple[int, int] | list[int]]:
+        src_coord: tuple[int, int] | list[int] = c.orig.coords
+        dest_coord: tuple[int, int] | list[int] = c.dest.coords
         return [src_coord, dest_coord]
 
-    def tr(self, coords: list[int] | list[list[int]],
+    def tr(self, coords: list[int],
            direction: int = 0) -> list[int]:
         '''
         Transform function takes grid coordinates and translates
@@ -209,8 +213,9 @@ class Grid():
             return [coords[0] // (self.hpad + 1), coords[1] // (self.vpad + 1)]
         if direction == 1:
             return []
+        return []
 
-    def print_grid(self, msg: str, delay: int = 1) -> None:
+    def print_grid(self, msg: str, delay: float = 1) -> None:
         CLEAR_SCREEN: str = '\x1b[2J\x1b[H'
         print(CLEAR_SCREEN)
         self.ascii_grid = self.base_grid(
