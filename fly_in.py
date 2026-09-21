@@ -192,7 +192,7 @@ class Map():
             raise SemanticError(Message='There must be at least one path'
                                 'from start zone to goal zone')
 
-    def move(self, z1: "Zone",
+    def move(self, z1: "Zone | Connection",
              z2: "Zone | Connection", d: str) -> str:
         # check that z1, z2, and d exist.
         elements = {
@@ -358,7 +358,7 @@ class Connection():
         return f"{self.orig.name} <=> {self.dest.name}"
 
 
-def parse_config(file: str) -> None:
+def parse_config(file: str) -> list[list[str] | list[list[list[str]]]]:
     def validate_md(meta: str, type: str) -> None:
         if (ml := len(meta.split(' '))) == 1:
             metas = meta.split('=')
@@ -535,6 +535,8 @@ def parse_config(file: str) -> None:
             n2: str | None = rrrr if type(rrrr := resu[1]) is str else None
             if n1 == n2:
                 lst: list[str] = file.split('\n')
+                if n1 is None:
+                    continue
                 lines: list[tuple[str, int]] = [
                     (li, lst.index(li) + 1)
                     for li in file.split('\n')
@@ -543,12 +545,20 @@ def parse_config(file: str) -> None:
                     lines[0][0],
                     lines[0][1],
                     Message="Zone names and connections must be unique")
-            c1: list[str] = result[i][1].split(' ')[1:3]
-            c2: list[str] = r[1].split(' ')[1:3]
+            value = result[i][1]
+            other_value = r[1]
+            if not isinstance(value, str):
+                continue
+            if not isinstance(other_value, str):
+                continue
+            c1: list[str] = value.split(' ')[1:3]
+            c2: list[str] = other_value.split(' ')[1:3]
             if c1 and c1 == c2 and not c1[0].startswith("["):
-                lst: list[str] = file.split('\n')
-                lines: list[str] = [
-                    [li, lst.index(li) + 1]
+                lst = file.split('\n')
+                if n1 is None:
+                    continue
+                lines = [
+                    (li, lst.index(li) + 1)
                     for li in file.split('\n')
                     if (' ' + n1 + ' ') in li or (' ' + n1 + '') in li]
                 raise InputFileError(
@@ -558,12 +568,12 @@ def parse_config(file: str) -> None:
     return (result)
 
 
-def select_map() -> str | None:
+def select_map() -> list[list[str] | list[list[list[str]]]] | None:
     print(CLEAR_SCREEN)
     print('\x1b[36m'+TITLE+'\x1b[0m')
     print("\x1b[42m\n")
     print("Hello please pick a map\n\x1b[0m")
-    file_index: list[str] = []
+    file_index: list[list[str]] = []
     directory: str = 'maps/'
     directories = [d for d in os.listdir(directory) if
                    os.path.isdir(os.path.join(directory, d))]
@@ -591,7 +601,8 @@ def select_map() -> str | None:
     with open('maps/'+[m[1] for m in file_index if m[0] == choice][0]) as file:
         print('\x1b[0m')
         try:
-            pconfig: str = parse_config(file.read())
+            pconfig: list[list[str] | list[list[list[str]]]] = parse_config(
+                file.read())
         except InputFileError as e:
             if e.line is not None:
                 print(f"\x1b[43mInputFileError:\n{e}\n"
@@ -609,27 +620,29 @@ def next_turn(m: Map) -> tuple[int, int, list[str]]:
     False otherwise
     '''
     move_count: int = 0
-    moved_drones: list[list[str, Connection]] = []
+    moved_drones: list[tuple[str, Connection]] = []
     move_flag: bool = True
     tdata: list[str] = []
     if (m.get_zone("impossible_goal")):
-        goal_zone: Zone = m.get_zone("impossible_goal")
-        if len(m.get_zone("impossible_goal").drones) == m.drones:
-            return (move_count, 1, tdata)
+        goal_zone: Zone | None = m.get_zone("impossible_goal")
+        if goal_zone is not None:
+            if len(goal_zone.drones) == m.drones:
+                return (move_count, 1, tdata)
     else:
-        goal_zone: Zone = m.get_zone("goal")
-        if len(goal_zone.drones) == m.drones:
-            return (move_count, 1, tdata)
+        goal_zone = m.get_zone("goal")
+        if goal_zone is not None:
+            if len(goal_zone.drones) == m.drones:
+                return (move_count, 1, tdata)
     # flushing locked drones entering into restricted zones
     for d in m.locked.copy():
         if (d[1].available()):
             conn: Connection = [
-                z for z in (m.get_zones() + m.get_connections())
+                z for z in (m.get_connections())
                 if d[0] in z.drones][0]
             result: str | None = m.move(conn, d[1], d[0])
             if result is not None:
                 tdata.append(result)
-                moved_drones.append([d[0], conn])
+                moved_drones.append((d[0], conn))
                 conn.transits += 1
                 m.locked.remove((d[0], d[1]))
                 move_count += 1
@@ -642,7 +655,7 @@ def next_turn(m: Map) -> tuple[int, int, list[str]]:
             # here i use a copy of the list of drones because the list
             # itself can change during iteration, causing elements to be
             # skipped
-            for d in z.drones.copy():
+            for dr in z.drones.copy():
                 next_forward_priority: Zone = [
                     nxtzone for nxtzone in z.possible_moves()
                     if (step_count := Map.hasPath(
@@ -670,7 +683,7 @@ def next_turn(m: Map) -> tuple[int, int, list[str]]:
                                   (z.node(m), goal_zone.node(m)))
                     and step_count != -1
                     and nxtzone.type == "RESTRICTED"]
-                if len(next_forward_priority) > 0 and d\
+                if len(next_forward_priority) > 0 and dr\
                         not in [md[0] for md in moved_drones]:
                     result: str | None = m.move(z, next_forward_priority[0], d)
                     conn: Connection = [
@@ -680,12 +693,12 @@ def next_turn(m: Map) -> tuple[int, int, list[str]]:
                         tdata.append(result)
                         conn.transits += 1
                     move_flag = True
-                    moved_drones.append([d, conn])
+                    moved_drones.append((d, conn))
                     move_count += 1
 
-                elif len(next_forward) > 0 and d\
+                elif len(next_forward) > 0 and dr\
                         not in [md[0] for md in moved_drones]:
-                    result: str | None = m.move(z, next_forward[0], d)
+                    result: str | None = m.move(z, next_forward[0], dr)
                     conn: Connection = [
                         c for c in z.get_connections()
                         if c.dest == next_forward[0]][0]
@@ -693,19 +706,19 @@ def next_turn(m: Map) -> tuple[int, int, list[str]]:
                         tdata.append(result)
                         conn.transits += 1
                     move_flag = True
-                    moved_drones.append([d, conn])
+                    moved_drones.append((dr, conn))
                     move_count += 1
 
-                elif len(next_forward_restricted) > 0 and d\
+                elif len(next_forward_restricted) > 0 and dr\
                         not in [md[0] for md in moved_drones]:
                     rdest: Zone = next_forward_restricted[0]
                     conn: Connection = [
                         c for c in z.get_connections()
                         if c.dest == next_forward_restricted[0]][0]
-                    result: str | None = m.move(z, conn, d)
+                    result: str | None = m.move(z, conn, dr)
                     if result is not None:
-                        m.locked.append((d, rdest))
-                        moved_drones.append([d, conn])
+                        m.locked.append((dr, rdest))
+                        moved_drones.append((dr, conn))
                         tdata.append(f"{d}-{z.name}-{rdest.name}")
                         conn.transits += 1
                         move_flag = True
