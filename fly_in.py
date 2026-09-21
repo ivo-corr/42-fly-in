@@ -488,7 +488,7 @@ def parse_config(file: str) -> None:
                         Message='nb_drones must be assigned a positive ' +
                         'integer')
 
-                if (int(result[i][1]) < 1):
+                if (type(res := result[i][1]) is str and int(res) < 1):
                     raise InputFileError(
                         cline,
                         cline_nr,
@@ -497,12 +497,22 @@ def parse_config(file: str) -> None:
         if 'hub' in result[i][0]:
             validate_hub(cline, cline_nr)
         if 'connection' in result[i][0]:
-            validate_connection(cline,
-                                cline_nr,
-                                [z[1].split(' ')[0]
-                                 for z in result[1:]
-                                 if z[0] != 'connection'],
-                                [cs for cs in result if cs[0] == 'connection'])
+            validate_connection(
+                cline,
+                cline_nr,
+                [z[1].split(' ')[0]
+                 for z in result[1:]
+                 if z[0] != 'connection' and isinstance(z[1], str)
+                 and isinstance(z[1], str)],
+                [cs[1] for cs in result if isinstance(cs[1], str)
+                 and cs[0] == 'connection']
+            )
+            # validate_connection(cline,
+            #                     cline_nr,
+            #                     [z[1].split(' ')[0]
+            #                      for z in result[1:]
+            #                      if z[0] != 'connection'],
+            #                     [cs for cs in result if cs[0] == 'connection'])
         if result[i][0] == 'start_hub':
             sh_count += 1
         if result[i][0] == 'end_hub':
@@ -515,17 +525,18 @@ def parse_config(file: str) -> None:
             f'\n\'{cline}\'')
     if (eh_count != 1):
         raise InputFileError(
-            file.split("\n").index(cline) + 1,
+            str(file.split("\n").index(cline) + 1),
             Message='There must be exactly one \'end_hub\':' +
             f'\n\'{cline}\'')
     for i in range(1, len(result)):
-        for r in result[i+1:]:
-            n1: str = result[i][1].split(' ')[0]
-            n2: str = r[1].split(' ')[0]
+        for resu in result[i+1:]:
+            n1: str | None = rrr.split(' ')[0] if\
+                type(rrr := result[i][1]) is str else None
+            n2: str | None = rrrr if type(rrrr := resu[1]) is str else None
             if n1 == n2:
                 lst: list[str] = file.split('\n')
-                lines: list[str] = [
-                    [li, lst.index(li) + 1]
+                lines: list[tuple[str, int]] = [
+                    (li, lst.index(li) + 1)
                     for li in file.split('\n')
                     if (' ' + n1 + ' ') in li or (' ' + n1 + '') in li]
                 raise InputFileError(
@@ -591,7 +602,7 @@ def select_map() -> str | None:
     return pconfig
 
 
-def next_turn(m: Map) -> tuple[int, int]:
+def next_turn(m: Map) -> tuple[int, int, list[str]]:
     '''
     next_turn runs the next simulation turn
     returns True when all drones reached goal
@@ -604,11 +615,11 @@ def next_turn(m: Map) -> tuple[int, int]:
     if (m.get_zone("impossible_goal")):
         goal_zone: Zone = m.get_zone("impossible_goal")
         if len(m.get_zone("impossible_goal").drones) == m.drones:
-            return [move_count, 1]
+            return (move_count, 1, tdata)
     else:
         goal_zone: Zone = m.get_zone("goal")
         if len(goal_zone.drones) == m.drones:
-            return [move_count, 1]
+            return (move_count, 1, tdata)
     # flushing locked drones entering into restricted zones
     for d in m.locked.copy():
         if (d[1].available()):
@@ -700,12 +711,12 @@ def next_turn(m: Map) -> tuple[int, int]:
                         move_flag = True
                         move_count += 1
     if len(goal_zone.drones) == m.drones:
-        return [move_count, 1, tdata]
+        return (move_count, 1, tdata)
     if (move_count == 0):
-        return [move_count, 1, tdata]
+        return (move_count, 1, tdata)
     for c in [c for c in m.get_connections() if c.transits > 0]:
         c.transits = 0
-    return [move_count, 0, tdata]
+    return (move_count, 0, tdata)
 
 
 if __name__ == "__main__":
