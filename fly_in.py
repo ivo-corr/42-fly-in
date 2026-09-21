@@ -673,7 +673,8 @@ def next_turn(m: Map) -> tuple[int, int, list[str]]:
                 steps.append((z, Map.hasPath(
                     graph,
                     (z.node(m), goal_zone.node(m)))))
-        return next_forward[0]
+        closest_zone: Zone = min(steps, key=lambda x: x[1])[0]
+        return closest_zone
 
     move_count: int = 0
     moved_drones: list[tuple[str, Connection]] = []
@@ -756,7 +757,8 @@ def next_turn(m: Map) -> tuple[int, int, list[str]]:
 
                 elif len(next_forward) > 0 and dr\
                         not in [md[0] for md in moved_drones]:
-                    result = m.move(z, next_forward[0], dr)
+                    result = m.move(z, compare_path_lengths(m.get_graph(), z.node(m), next_forward), dr)
+                    # result = m.move(z, next_forward[0], dr)
                     conn = [
                         c for c in z.get_connections()
                         if c.dest == next_forward[0]][0]
@@ -773,6 +775,7 @@ def next_turn(m: Map) -> tuple[int, int, list[str]]:
                     conn = [
                         c for c in z.get_connections()
                         if c.dest == next_forward_restricted[0]][0]
+                    # result = m.move(z, compare_path_lengths(m.get_graph(), z.node(m), next_forward_restricted), dr)
                     result = m.move(z, conn, dr)
                     if result is not None:
                         m.locked.append((dr, rdest))
