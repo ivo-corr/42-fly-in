@@ -80,7 +80,7 @@ class Grid():
         else:
             if delta_x > 0:
                 if ' ' not in self.ascii_grid[conn[0][1]][conn[0][0]]\
-                    and 'D' not in self.ascii_grid[conn[0][1]][conn[0][0]]:
+                        and 'D' not in self.ascii_grid[conn[0][1]][conn[0][0]]:
                     if (a_char == ''):
                         self.ascii_grid[conn[0][1]][conn[0][0]] = (
                             self.colors['BACKGROUND'] + self.colors['BG_BG'] +
@@ -95,7 +95,7 @@ class Grid():
                 self.rconnect([[conn[0][0] + 1, conn[0][1]], conn[1]])
             if delta_x == 0 and delta_y != 0:
                 if ' ' not in self.ascii_grid[conn[0][1]][conn[0][0]]\
-                    and 'D' not in self.ascii_grid[conn[0][1]][conn[0][0]]:
+                        and 'D' not in self.ascii_grid[conn[0][1]][conn[0][0]]:
                     if (a_char == ''):
                         self.ascii_grid[conn[0][1]][conn[0][0]] = (
                             self.colors['BACKGROUND'] + self.colors['BG_BG'] +
@@ -132,23 +132,25 @@ class Grid():
 
     def connect_grid(self):
         for c in self.raw_connections:
-            points: list[tuple[int, int]] = self.bresenham(c[0][0], c[0][1], c[1][0], c[1][1])
+            points: list[tuple[int, int]] =\
+                self.bresenham(c[0][0], c[0][1], c[1][0], c[1][1])
             for p in points:
                 if ' ' not in self.ascii_grid[p[1]][p[0]]\
-                    and 'D' not in self.ascii_grid[p[1]][p[0]]:
+                        and 'D' not in self.ascii_grid[p[1]][p[0]]:
                     if len(c[2]) > 0:
                         if (points.index(p) - 1) in range(
                             (len(points)//2) - (len(c[2])//2) - 1,
-                            (len(points)//2) + len(c[2]) - (len(c[2])//2) + 1):
+                                (len(points)//2) + len(c[2]) -
+                                (len(c[2])//2) + 1):
                             self.ascii_grid[p[1] - 1][p[0]] = (
                                 self.colors['BACKGROUND'] +
-                                '█' * ((self.csize // 2) - 1)) + c[2][0] +\
+                                '█' * (((self.csize) // 2) - 1)) + c[2][0] +\
                                 ('█' * (self.csize // 2)) + self.colors['END']
                             c[2].remove(c[2][0])
                     self.ascii_grid[p[1]][p[0]] = (
                         self.colors['BACKGROUND'] + self.colors['BG_BG'] +
                         '█' * (self.csize // 2)) + '▫️' +\
-                            ('█' * (self.csize // 2)) + self.colors['END']
+                        ('█' * (self.csize // 2)) + self.colors['END']
 
     def base_grid(self, height: int, width: int,
                   vpad: int = 1, hpad: int = 1) -> list[list[str]]:
@@ -160,13 +162,17 @@ class Grid():
                     row.append(self.scaffolding)
                 elif (self.tr([c, r]) in
                       [z.coords for z in self.map.get_zones()]):
-                    color = [z for z in self.map.get_zones() if z.coords == self.tr([c, r])][0].color
-                    zdrones = [len(z.drones) for z in self.map.get_zones() if z.coords == self.tr([c, r])][0]
+                    color = [z for z in self.map.get_zones() if z.coords ==
+                             self.tr([c, r])][0].color
+                    zdrones = [len(z.drones) for z in self.map.get_zones()
+                               if z.coords == self.tr([c, r])][0]
                     zdrones_digits = len(str(zdrones))
                     if (color in self.colors.keys()):
-                        row.append(self.colors[color] + str(zdrones) + " " * (self.csize - zdrones_digits))
+                        row.append(self.colors[color] + str(zdrones) + " " *
+                                   (self.csize - zdrones_digits))
                     else:
-                        row.append(self.colors["NOT_FOUND"] + str(zdrones) + " " * (self.csize - zdrones_digits))
+                        row.append(self.colors["NOT_FOUND"] + str(zdrones) +
+                                   " " * (self.csize - zdrones_digits))
                     self.raw_zones.append([c, r])
                     # print(f"{[self.tr([c,r])]} correlates to {[c,r]} ")
                 else:

@@ -1,7 +1,5 @@
 from enum import Enum
-from time import sleep
 import os
-from typing import Any
 
 
 class InputFileError(Exception):
@@ -133,17 +131,16 @@ class Map():
                             else zsplit.split("]")[0]
                     self._zones.append(
                         Zone(name := c[1].split(" ")[0],
-                                 c[0],
-                                 tmp,
-                                 color=color,
-                                 capacity=int(drones_md)
-                                 if ["max_drones"] in meta
-                                 else 1 if name != 'start' and name != 'goal'
-                                 else -1,
-                                 type=ZoneType.__members__.get(
-                                     zone_md.upper(), ZoneType.NORMAL).name,
-                                 drones=self.drones if name ==
-                                 "start" else 0))
+                             c[0],
+                             tmp,
+                             color=color,
+                             capacity=int(drones_md)
+                             if ["max_drones"] in meta
+                             else 1 if name != 'start' and name != 'goal'
+                             else -1,
+                             type=ZoneType.__members__.get(
+                                zone_md.upper(), ZoneType.NORMAL).name,
+                             drones=self.drones if name == "start" else 0))
                 if (int(tmp[0]) > self.dimensions[0]):
                     self.dimensions[0] = int(tmp[0])
                 if (int(tmp[1]) > self.dimensions[1]):
@@ -193,8 +190,16 @@ class Map():
     def move(self, z1: "Zone",
              z2: "Zone", d: str):
         # check that z1, z2, and d exist.
-        if ({z1, z2, d} & set(self.get_zones() + self.get_connections() + z1.drones) == {z1, z2, d}
-                and (z2 in [(c.dest if type(c) is Connection else c) for c in z1.get_connections()] or z2 in z1.get_connections())):
+        elements = {
+            *self.get_zones(),
+            *self.get_connections(),
+            *z1.drones,
+        }
+        if ({z1, z2, d} & elements == {z1, z2, d}
+                and (z2 in
+                     [(c.dest if type(c) is Connection else c)
+                      for c in z1.get_connections()]
+                     or z2 in z1.get_connections())):
             # check that the amount of drones moved through
             # the connection so far is lower than the connection's capacity.
             if type(z2) is Connection:
@@ -242,40 +247,26 @@ to '{z2.name}'\x1b[0m''')
                         (self._zones.index(c.orig), self._zones.index(c.dest)))
         return (vertices)
 
-    def show(self):
-        msg: str = ''
-        panels: list[list[str]] = []
-        max_len: int = 0
-        # for z in [z.name for z in self.get_zones]:
-        #     if max_len < z:
-        #         max_len = len(z)
-        # for z in self.get_zones():
-        #     p: str = (f'''{z.name}:\n''')
-        #     for d in z.drones:
-        #         p += d + '\n'
-        #     panels.append(p)
-        # breakpoint()
-        return msg
+    # def new_turn(self):
+    #     self.moved_drones: list[list[str, Zone]]
+    #     move_flag: bool = True
+    #     turn_log: list[str] = []
+    #     goal_zone: Zone = m.get_zone("goal")
 
-    def new_turn(self):
-        self.moved_drones: list[list[str, Zone]]
-        move_flag: bool = True
-        turn_log: list[str] = []
-        goal_zone: Zone = m.get_zone("goal")
+    #     # check if circuit is complete
+    #     if (len(goal_zone.drones)) == m.drones:
+    #         return 1
 
-        # check if circuit is complete
-        if (len(goal_zone.drones)) == m.drones:
-            return 1
-
-        # flush drones from connections into their corresponding restricted zones
-        for d in self.locked:
-            self.move(d[1][0], d[1][1], d[0])
+    #     # flush drones from connections into their corresponding restricted 
+    # zones
+    #     for d in self.locked:
+    #         self.move(d[1][0], d[1][1], d[0])
 
 
 class Zone():
     def __init__(self, name: str, if_name: str,
                  coords: tuple[str, str] | list[str],
-                 type: ZoneType = ZoneType.NORMAL,
+                 type: str = 'NORMAL',
                  color: str = "NONE",
                  capacity: int = -1,
                  drones: int = 0):
@@ -389,7 +380,8 @@ def parse_config(file: str):
                         cline_nr,
                         Message='MAX_LINK_CAPACITY is not a property of hubs')
                 if meta[0].lower() == 'zone' and\
-                        meta[1].upper() not in list(ZoneType.__members__.keys()):
+                        meta[1].upper()\
+                        not in list(ZoneType.__members__.keys()):
                     raise InputFileError(
                         cline,
                         cline_nr,
@@ -439,7 +431,8 @@ def parse_config(file: str):
             raise InputFileError(line, line_nr, "Zone coordinates must "
                                  "be integers")
 
-    def validate_connection(line: str, line_nr: int, zones: list[str], conns: list[str]):
+    def validate_connection(line: str, line_nr: int, zones: list[str],
+                            conns: list[str]):
         conn: str = line.split(": ")[1].split(" [")[0]
         src: str
         dst: str
@@ -448,7 +441,8 @@ def parse_config(file: str):
         # first check that connected zones exist
         if (src not in zones or dst not in zones):
             raise InputFileError(
-                line, line_nr, Message="Connections must connect existing zones"
+                line, line_nr,
+                Message="Connections must connect existing zones"
             )
         # second, check if there are equivalent connections
         if (converse_conn in [c[1] for c in conns]):
@@ -758,7 +752,7 @@ if __name__ == "__main__":
     with open("output.txt", 'w') as file:
         file.write(output_f)
 
-    print(f"\n\x1b[42m\x1b[30mSimulation finished successfully!\x1b[0m\n")
+    print("\n\x1b[42m\x1b[30mSimulation finished successfully!\x1b[0m\n")
     print(f"Total number of turns: {turn+1}")
     # except Exception as e:
     #     print(e)
