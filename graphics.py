@@ -194,7 +194,8 @@ class Grid():
 
     def bresenham(self, x0: int, y0: int, x1: int, y1: int)\
             -> list[tuple[int, int]]:
-        """Compute grid points on a line between two points (Bresenham's algorithm).
+        """Compute grid points on a line between two points (Bresenham's
+        algorithm).
 
         Parameters
         ----------

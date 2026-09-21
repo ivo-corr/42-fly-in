@@ -1257,7 +1257,8 @@ def select_map() -> list[list[str] | list[list[list[str]]]] | None:
 
 
 def main() -> None:
-    """Run the drone simulation CLI: select a map, then step turns interactively.
+    """Run the drone simulation CLI: select a map, then step turns
+    interactively.
 
     Parses the ``--map`` command-line argument (or prompts interactively
     via :func:`select_map` if not given), builds a :class:`Map`, and then
@@ -1314,7 +1315,7 @@ def main() -> None:
         exit()
     print(f"Map size: {mm.dimensions}")
     g: graphics.Grid = graphics.Grid(mm, 3, vpad=5, hpad=5)
-    msg = "\nR: run simulation\nN: next turn\nS: select map\nQ: quit"
+    msg = "\nR: run simulation\nN: next turn\nQ: quit"
     g.print_grid(msg, delay=0.3)
     cmd: str = prompt()
     turn: int = 0
