@@ -256,18 +256,46 @@ to '{z2.name}'\x1b[0m''')
             return found_zone[0]
         return None
 
+    # def get_graph(self) -> list[tuple[int, int]]:
+    #     vertices: list[tuple[int, int]] = []
+    #     for zi in range(len(self._zones)):
+    #         for c in [z
+    #                   for z in
+    #                   self._zones[zi].get_connections()
+    #                   if z.dest.type != 'BLOCKED']:
+    #             if (self._zones.index(c.orig) < self._zones.index(c.dest)):
+    #                 vertices.append(
+    #                     (self._zones.index(c.orig), self._zones.index(c.dest)))
+    #     return (vertices)
     def get_graph(self) -> list[tuple[int, int]]:
+        '''
+        get_graph returns a graph that the function hasPath understands,
+        to calculate paths for each drone each turn. It omits BLOCKED zones
+        and it expands RESTRICTED zones to account for their cost, translated
+        as distance.
+        '''
         vertices: list[tuple[int, int]] = []
-        for zi in range(len(self._zones)):
-            for c in [z
-                      for z in
-                      self._zones[zi].get_connections()
-                      if z.dest.type != 'BLOCKED']:
-                if (self._zones.index(c.orig) < self._zones.index(c.dest)):
-                    vertices.append(
-                        (self._zones.index(c.orig), self._zones.index(c.dest)))
-        return (vertices)
+        next_node = len(self._zones)
 
+        for zi in range(len(self._zones)):
+            for c in [
+                z for z in self._zones[zi].get_connections()
+                if z.dest.type != 'BLOCKED'
+            ]:
+                orig = self._zones.index(c.orig)
+                dest = self._zones.index(c.dest)
+
+                if orig < dest:
+                    if c.dest.type == 'RESTRICTED':
+                        intermediary = next_node
+                        next_node += 1
+
+                        vertices.append((orig, intermediary))
+                        vertices.append((intermediary, dest))
+                    else:
+                        vertices.append((orig, dest))
+
+        return vertices
     # def new_turn(self):
     #     self.moved_drones: list[list[str, Zone]]
     #     move_flag: bool = True
@@ -807,6 +835,8 @@ if __name__ == "__main__":
         g.print_grid(
             msg + f'\n\n─── Turn {turn} ───\n' + '\n'.join(tdata) +
             '\n──────────────')
+        # if len(m.get_zone('bottleneck2').drones) > 0:
+        #     breakpoint()
         if (cmd != 'R'):
             cmd = prompt()
         if (finished):
