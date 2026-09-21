@@ -4,6 +4,19 @@ import argparse
 
 
 class InputFileError(Exception):
+    """Exception raised when the input configuration file is malformed.
+
+    Parameters
+    ----------
+    line : str | list[str] | None, optional
+        The offending line (or lines) from the input file.
+    line_nr : int | list[int] | None, optional
+        The line number (or numbers) at which the error occurred.
+    Message : str | None, optional
+        A custom error message. If not provided, a message is generated
+        from ``line`` and ``line_nr``.
+    """
+
     def __init__(self, line: str | list[str] | None = None,
                  line_nr: int | list[int] | None = None,
                  Message: str | None = None) -> None:
@@ -15,11 +28,36 @@ class InputFileError(Exception):
 
 
 class SemanticError(Exception):
+    """Exception raised when the parsed map violates a semantic rule.
+
+    Examples of semantic errors include an unreachable goal zone or a
+    start/end zone whose capacity is lower than the number of drones.
+
+    Parameters
+    ----------
+    Message : str | None, optional
+        Description of the semantic error.
+    """
+
     def __init__(self, Message: str | None = None) -> None:
         super().__init__(Message)
 
 
 class Metadata(str, Enum):
+    """Enumeration of the metadata keys allowed in the map config file.
+
+    Attributes
+    ----------
+    ZONE : str
+        Metadata key specifying a zone's type (see :class:`ZoneType`).
+    COLOR : str
+        Metadata key specifying a hub's display color.
+    MAX_LINK_CAPACITY : str
+        Metadata key specifying a connection's maximum drone capacity.
+    MAX_DRONES : str
+        Metadata key specifying a hub's maximum drone capacity.
+    """
+
     ZONE = "zone"
     COLOR = "color"
     MAX_LINK_CAPACITY = "max_link_capacity"
@@ -27,6 +65,22 @@ class Metadata(str, Enum):
 
 
 class ZoneType(Enum):
+    """Enumeration of the possible types a :class:`Zone` can have.
+
+    Attributes
+    ----------
+    NORMAL : int
+        A regular zone with no special behavior.
+    BLOCKED : int
+        A zone that drones cannot enter or move through.
+    RESTRICTED : int
+        A zone that adds extra "distance" cost and locks drones while
+        they occupy it.
+    PRIORITY : int
+        A zone that drones prefer to move through when routing toward
+        the goal.
+    """
+
     NORMAL = 0
     BLOCKED = 1
     RESTRICTED = 2
@@ -34,6 +88,21 @@ class ZoneType(Enum):
 
 
 class Map():
+    """Represents the drone circuit map: its zones, connections and state.
+
+    A ``Map`` is built from a parsed config (as produced by
+    :func:`parse_config`) and exposes the simulation step
+    (:meth:`new_turn`) used to advance drones toward the goal zone.
+
+    Attributes
+    ----------
+    colors : list[str]
+        Valid color names that can be assigned to a hub.
+    move_count : int
+        Class-level counter (currently unused at the class level; per-turn
+        move counts are returned by :meth:`new_turn`).
+    """
+
     colors: list[str] = ["NONE", "GREEN", "RED", "BLUE", "ORANGE",
                          "YELLOW", "CYAN", "PURPLE", "BROWN",
                          "LIME", "MAGENTA", "GOLD", "BLACK",
@@ -49,6 +118,24 @@ class Map():
         between two points if a path between nodes
         tuple[0] and tuple[1]
         exists, otherwise -1
+
+        Parameters
+        ----------
+        xs : list[tuple[int, int]]
+            The graph, expressed as a list of edges (node id pairs), to
+            search through.
+        conn : tuple[int, int]
+            A pair ``(start_node, end_node)`` identifying the path to
+            look for.
+        counter : int, optional
+            The accumulated number of hops taken so far (used internally
+            for the recursion). Defaults to 0.
+
+        Returns
+        -------
+        int
+            The number of intermediate vertices on a path from
+            ``conn[0]`` to ``conn[1]`` if one exists, otherwise -1.
         '''
         if (conn[0] == conn[1]):
             return counter
@@ -59,6 +146,29 @@ class Map():
 
     def __init__(self,
                  pconfig: list[list[str] | list[list[list[str]]]] | None):
+        """Build a Map from a parsed config, creating zones and connections.
+
+        Parses the ``pconfig`` structure produced by :func:`parse_config`,
+        populating ``self._zones`` with :class:`Zone` instances and wiring
+        up :class:`Connection` objects between them. Also validates that
+        the start/end zone capacities can hold the declared number of
+        drones and that at least one path exists from the start zone to
+        the goal zone.
+
+        Parameters
+        ----------
+        pconfig : list[list[str] | list[list[list[str]]]] | None
+            The parsed map configuration, as returned by
+            :func:`parse_config`. If ``None``, an empty map is created
+            (no zones, no connections).
+
+        Raises
+        ------
+        SemanticError
+            If the start or end zone's capacity is lower than the number
+            of drones, or if there is no path from the start zone to the
+            goal zone.
+        """
         self._zones: list[Zone] = []
         self.dimensions: list[int] = [0, 0]
         self.drones: int = 0
@@ -209,6 +319,33 @@ class Map():
 
     def move(self, z1: "Zone | Connection",
              z2: "Zone | Connection", d: str) -> str:
+        """Move a single drone from one map element to another.
+
+        Validates that ``z1`` and ``z2`` belong to the map, that drone
+        ``d`` is currently located at ``z1``, and that a connection from
+        ``z1`` to ``z2`` exists, before moving the drone.
+
+        Parameters
+        ----------
+        z1 : Zone | Connection
+            The zone or connection the drone is currently occupying.
+        z2 : Zone | Connection
+            The zone or connection the drone is being moved into.
+        d : str
+            The identifier of the drone to move.
+
+        Returns
+        -------
+        str
+            A string of the form ``"<drone>-<destination_name>"``
+            describing the move that was made.
+
+        Raises
+        ------
+        Exception
+            If ``z1``/``z2`` are not part of the map, drone ``d`` is not
+            at ``z1``, or there is no connection from ``z1`` to ``z2``.
+        """
         # check that z1, z2, and d exist.
         elements = {
             *self.get_zones(),
@@ -241,6 +378,19 @@ class Map():
 to '{z2.name}'\x1b[0m''')
 
     def get_zones(self, only_occupied: bool = False) -> list["Zone"]:
+        """Return the list of zones in the map.
+
+        Parameters
+        ----------
+        only_occupied : bool, optional
+            If ``True``, only return zones that currently contain at
+            least one drone. Defaults to ``False``.
+
+        Returns
+        -------
+        list[Zone]
+            The requested list of zones.
+        """
         if not only_occupied:
             return self._zones
         return [z for z in self.get_zones() if len(z.drones) > 0]
@@ -248,9 +398,35 @@ to '{z2.name}'\x1b[0m''')
     def get_connections(
             self,
             only_occupied: bool = False) -> list["Connection"]:
+        """Return the list of connections between all zones in the map.
+
+        Parameters
+        ----------
+        only_occupied : bool, optional
+            Currently unused; present for API symmetry with
+            :meth:`get_zones`. Defaults to ``False``.
+
+        Returns
+        -------
+        list[Connection]
+            All connections belonging to every zone in the map.
+        """
         return [c for z in self._zones for c in z.get_connections()]
 
     def get_zone(self, name: str) -> "Zone | None":
+        """Look up a zone by name (case-insensitive).
+
+        Parameters
+        ----------
+        name : str
+            The name of the zone to find.
+
+        Returns
+        -------
+        Zone | None
+            The matching zone, or ``None`` if no zone with that name
+            exists.
+        """
         found_zone = [z for z in self.get_zones() if z.name == name.lower()]
         if len(found_zone) == 1:
             return found_zone[0]
@@ -273,6 +449,14 @@ to '{z2.name}'\x1b[0m''')
         to calculate paths for each drone each turn. It omits BLOCKED zones
         and it expands RESTRICTED zones to account for their cost, translated
         as distance.
+
+        Returns
+        -------
+        list[tuple[int, int]]
+            A list of edges (as zone-index pairs) representing the map's
+            connections. Connections into a RESTRICTED zone are split into
+            two edges via a synthetic intermediary node so that entering a
+            RESTRICTED zone costs an extra hop in :meth:`Map.hasPath`.
         '''
         vertices: list[tuple[int, int]] = []
         next_node = len(self._zones)
@@ -302,11 +486,50 @@ to '{z2.name}'\x1b[0m''')
         next_turn runs the next simulation turn
         returns True when all drones reached goal
         False otherwise
+
+        Advances the simulation by one turn: first flushes any drones
+        that were locked in a RESTRICTED zone and have since become free
+        to continue, then repeatedly moves every occupied zone's drones
+        one step closer to the goal (preferring PRIORITY zones, then
+        normal zones, then RESTRICTED zones which get locked) until no
+        further moves are possible in this turn.
+
+        Returns
+        -------
+        tuple[int, int, list[str]]
+            A 3-tuple of:
+
+            - ``move_count`` (int): the number of drone moves made this
+              turn.
+            - ``finished`` (int): ``1`` if the simulation is finished
+              (either all drones reached the goal, or no more moves are
+              possible), ``0`` otherwise.
+            - ``tdata`` (list[str]): a log of the individual moves made
+              this turn, formatted as ``"<drone>-<destination>"`` strings.
         '''
         def compare_path_lengths(
                 graph: list[tuple[int, int]],
                 orig: int,
                 next_forward: list[Zone]) -> Zone:
+            """Pick the candidate zone with the shortest path to the goal.
+
+            Parameters
+            ----------
+            graph : list[tuple[int, int]]
+                The graph (as returned by :meth:`Map.get_graph`) to
+                compute path lengths on.
+            orig : int
+                The node id of the zone the drone is currently in
+                (currently unused directly, kept for context).
+            next_forward : list[Zone]
+                Candidate zones to move into.
+
+            Returns
+            -------
+            Zone
+                The candidate zone in ``next_forward`` with the shortest
+                path to the goal zone.
+            """
             steps: list[tuple[Zone, int]] = []
             for z in next_forward:
                 if goal_zone is not None:
@@ -438,12 +661,43 @@ to '{z2.name}'\x1b[0m''')
 
 
 class Zone():
+    """Represents a single zone (hub) on the map.
+
+    A zone has a name, coordinates, a type (see :class:`ZoneType`), an
+    optional drone capacity, and a set of outgoing :class:`Connection`
+    objects to neighboring zones.
+    """
+
     def __init__(self, name: str, if_name: str,
                  coords: tuple[str, str] | list[str],
                  type: str = 'NORMAL',
                  color: str = "NONE",
                  capacity: int = -1,
                  drones: int = 0):
+        """Initialize a Zone.
+
+        Parameters
+        ----------
+        name : str
+            The zone's display/config name (e.g. ``"start"``, ``"goal"``).
+        if_name : str
+            The interface/role name of the zone as declared in the config
+            file (e.g. ``"start_hub"``, ``"end_hub"``).
+        coords : tuple[str, str] | list[str]
+            The zone's ``(x, y)`` coordinates, as strings, converted to
+            ``int`` internally.
+        type : str, optional
+            The zone's type name, matching a member of :class:`ZoneType`.
+            Defaults to ``'NORMAL'``.
+        color : str, optional
+            The zone's display color. Defaults to ``"NONE"``.
+        capacity : int, optional
+            The maximum number of drones the zone can hold at once, or
+            ``-1`` for unlimited. Defaults to ``-1``.
+        drones : int, optional
+            The number of drones to pre-populate the zone with (used for
+            the start zone). Defaults to 0.
+        """
         self.if_name: str = if_name
         self.name: str = name
         self.coords: tuple[int, int] | list[int] = [int(x) for x in coords]
@@ -456,10 +710,31 @@ class Zone():
             self.drones.append("D"+str(dn))
 
     def set_connection(self, dest: "Zone", capacity: int = -1) -> None:
+        """Create and register a connection from this zone to another.
+
+        Parameters
+        ----------
+        dest : Zone
+            The destination zone to connect to.
+        capacity : int, optional
+            The maximum number of drones that may transit the connection
+            at once. Defaults to -1.
+
+        Returns
+        -------
+        None
+        """
         self._connections.append(Connection(
             self, dest, max_capacity=capacity))
 
     def get_connections(self) -> list["Connection"]:
+        """Return this zone's outgoing connections.
+
+        Returns
+        -------
+        list[Connection]
+            The list of connections originating from this zone.
+        """
         return (self._connections)
 
     def node(self, m: "Map") -> int:
@@ -467,10 +742,28 @@ class Zone():
         returns the numeric id of the node
         that represents this zone in the graph
         that represents map m
+
+        Parameters
+        ----------
+        m : Map
+            The map this zone belongs to.
+
+        Returns
+        -------
+        int
+            The index of this zone within ``m``'s zone list.
         '''
         return m.get_zones().index(self)
 
     def available(self) -> bool:
+        """Check whether this zone can currently accept another drone.
+
+        Returns
+        -------
+        bool
+            ``False`` if the zone is BLOCKED or already at capacity,
+            ``True`` otherwise.
+        """
         if (self.type == "BLOCKED"):
             return False
         if (self.capacity == -1 or
@@ -479,6 +772,16 @@ class Zone():
         return False
 
     def possible_moves(self) -> list["Zone"]:
+        """Return the neighboring zones a drone here could move into.
+
+        A neighbor is a valid move target if both the connection to it
+        and the neighbor zone itself are available (not blocked/full).
+
+        Returns
+        -------
+        list[Zone]
+            The list of zones reachable in one hop from this zone.
+        """
         available: list[Zone] = []
         # for c in self.get_connections():
         #     conn_av = c.available()
@@ -490,6 +793,19 @@ class Zone():
         return available
 
     def show(self, mode: int = 0) -> str:
+        """Build a human-readable, ANSI-colored summary of this zone.
+
+        Parameters
+        ----------
+        mode : int, optional
+            Display mode. ``0`` (the default) returns a detailed
+            multi-line summary; any other value returns an empty string.
+
+        Returns
+        -------
+        str
+            The formatted summary string.
+        """
         if mode == 0:
             return f"""\x1b[46m\n\n\t{self.name}:
 \t\tCoordinates: {self.coords}
@@ -505,8 +821,22 @@ class Zone():
 
 
 class Connection():
+    """Represents a directed connection (edge) between two zones."""
+
     def __init__(self, orig: Zone, dest: Zone,
                  max_capacity: int = 1):
+        """Initialize a Connection.
+
+        Parameters
+        ----------
+        orig : Zone
+            The zone the connection originates from.
+        dest : Zone
+            The zone the connection leads to.
+        max_capacity : int, optional
+            The maximum number of drones that may transit this
+            connection at once. Defaults to 1.
+        """
         self.orig: Zone = orig
         self.dest: Zone = dest
         self.name = f"{self.orig.name}-{self.dest.name}"
@@ -516,19 +846,92 @@ class Connection():
         self.used: bool = False
 
     def get_connections(self) -> list[Zone]:
+        """Return the destination zone as a single-element list.
+
+        Provided so a :class:`Connection` can be treated similarly to a
+        :class:`Zone` when checking possible next hops.
+
+        Returns
+        -------
+        list[Zone]
+            A single-element list containing ``self.dest``.
+        """
         return [self.dest]
 
     def available(self) -> bool:
+        """Check whether this connection has spare capacity.
+
+        Returns
+        -------
+        bool
+            ``True`` if the number of drones currently transiting plus
+            those already queued is below ``self.capacity``, ``False``
+            otherwise.
+        """
         if self.transits + len(self.drones) < self.capacity:
             return True
         return False
 
     def show(self) -> str:
+        """Build a human-readable summary of this connection.
+
+        Returns
+        -------
+        str
+            A string of the form ``"<origin> <=> <destination>"``.
+        """
         return f"{self.orig.name} <=> {self.dest.name}"
 
 
 def parse_config(file: str) -> list[list[str] | list[list[list[str]]]]:
+    """Parse and validate the contents of a map configuration file.
+
+    Splits the raw file content into ``key: value`` pairs, validates
+    hub, connection, and metadata syntax, and enforces map-level rules
+    (exactly one ``start_hub`` and one ``end_hub``, unique zone names and
+    coordinates, etc.).
+
+    Parameters
+    ----------
+    file : str
+        The raw text content of the map configuration file.
+
+    Returns
+    -------
+    list[list[str] | list[list[list[str]]]]
+        The parsed configuration, as a list of ``[key, value]`` pairs,
+        ready to be passed to :class:`Map`.
+
+    Raises
+    ------
+    InputFileError
+        If the file is malformed or violates any validation rule (e.g.
+        missing ``nb_drones`` line, invalid metadata, duplicate zone
+        names, missing/duplicate start or end hub, etc.).
+    """
     def validate_md(meta: str, type: str) -> None:
+        """Validate one or more space-separated ``key=value`` metadata items.
+
+        Parameters
+        ----------
+        meta : str
+            The metadata substring to validate (may contain multiple
+            space-separated ``key=value`` entries).
+        type : str
+            The kind of element the metadata belongs to, either
+            ``'hub'`` or ``'connection'``, which determines which
+            metadata keys are permitted.
+
+        Returns
+        -------
+        None
+
+        Raises
+        ------
+        InputFileError
+            If the metadata is malformed, references an unknown
+            property, or uses a property not valid for ``type``.
+        """
         if (ml := len(meta.split(' '))) == 1:
             metas = meta.split('=')
             if (len(metas) != 2):
@@ -588,6 +991,27 @@ def parse_config(file: str) -> list[list[str] | list[list[list[str]]]]:
                 validate_md(p, type)
 
     def validate_hub(line: str, line_nr: int) -> None:
+        """Validate the syntax of a single hub declaration line.
+
+        Parameters
+        ----------
+        line : str
+            The full ``key: value`` line declaring the hub.
+        line_nr : int
+            The 1-based line number of ``line`` in the source file, used
+            for error reporting.
+
+        Returns
+        -------
+        None
+
+        Raises
+        ------
+        InputFileError
+            If the line is missing its value, the zone name contains
+            dashes or spaces, the coordinates are not integers, or any
+            embedded metadata is invalid.
+        """
         splat: list[str] = line.split(": ")
         if (len((m := splat[1].split('['))) > 1):
             meta: str = m[1][:-1]
@@ -606,6 +1030,33 @@ def parse_config(file: str) -> list[list[str] | list[list[list[str]]]]:
 
     def validate_connection(line: str, line_nr: int, zones: list[str],
                             conns: list[str]) -> None:
+        """Validate the syntax and uniqueness of a connection declaration.
+
+        Parameters
+        ----------
+        line : str
+            The full ``key: value`` line declaring the connection.
+        line_nr : int
+            The 1-based line number of ``line`` in the source file, used
+            for error reporting.
+        zones : list[str]
+            The names of all zones declared elsewhere in the file, used
+            to verify the connection references existing zones.
+        conns : list[str]
+            The raw values of all connection declarations seen so far,
+            used to detect duplicate (including reversed) connections.
+
+        Returns
+        -------
+        None
+
+        Raises
+        ------
+        InputFileError
+            If either endpoint zone does not exist, the reverse
+            connection already exists, or any embedded metadata is
+            invalid.
+        """
         conn: str = line.split(": ")[1].split(" [")[0]
         src: str
         dst: str
@@ -739,6 +1190,19 @@ def parse_config(file: str) -> list[list[str] | list[list[list[str]]]]:
 
 
 def select_map() -> list[list[str] | list[list[list[str]]]] | None:
+    """Interactively prompt the user to pick a map file from ``maps/``.
+
+    Prints a title banner and a listing of available map files (grouped
+    by subdirectory), reads the user's numeric choice from stdin, then
+    parses the chosen file via :func:`parse_config`.
+
+    Returns
+    -------
+    list[list[str] | list[list[list[str]]]] | None
+        The parsed map configuration for the chosen file, or ``None`` if
+        the chosen file failed to parse (an :class:`InputFileError` was
+        caught and reported).
+    """
     CLEAR_SCREEN: str = '\x1b[2J\x1b[H'
     TITLE: str = '''
 ███████╗██╗  ██╗   ██╗       ██╗███╗   ██╗
@@ -793,9 +1257,31 @@ def select_map() -> list[list[str] | list[list[list[str]]]] | None:
 
 
 def main() -> None:
+    """Run the drone simulation CLI: select a map, then step turns interactively.
+
+    Parses the ``--map`` command-line argument (or prompts interactively
+    via :func:`select_map` if not given), builds a :class:`Map`, and then
+    loops calling :meth:`Map.new_turn`, rendering the grid after each
+    turn and prompting the user for the next command (run, next turn,
+    select a new map, or quit) until the simulation finishes. The move
+    log for the whole run is written to ``output.txt``.
+
+    Returns
+    -------
+    None
+    """
     import graphics
 
     def prompt() -> str:
+        """Read and normalize a single command from the user.
+
+        Returns
+        -------
+        str
+            ``"S"`` to select a new map, or the uppercased command
+            string otherwise. Calls ``exit()`` directly if the user
+            enters ``Q``.
+        """
         cmd: str = input("\n## ")
         if (cmd.upper() == 'Q'):
             exit()

@@ -4,6 +4,18 @@ from typing import Any
 
 
 def pr_grid(grid: list[list[str]]) -> None:
+    """Print a character grid to the terminal, row by row.
+
+    Parameters
+    ----------
+    grid : list[list[str]]
+        A 2D grid of strings (e.g. ANSI-colored cell contents) to print,
+        where each inner list is a row.
+
+    Returns
+    -------
+    None
+    """
     for row in grid:
         for column in row:
             print(column, end='')
@@ -11,6 +23,22 @@ def pr_grid(grid: list[list[str]]) -> None:
 
 
 class Grid():
+    """Renders a :class:`fly_in.Map` as an ANSI-colored terminal grid.
+
+    Builds and refreshes an ASCII/ANSI representation of the map's
+    zones, their drone counts, and the connections between them,
+    including simple orthogonal/diagonal line-drawing between cells.
+
+    Attributes
+    ----------
+    bg : str
+        ANSI escape code for the grid's background color.
+    colors : dict[str, str]
+        Mapping from zone color names (and a few special keys like
+        ``'BACKGROUND'``, ``'BG_BG'``, and ``'END'``) to their ANSI
+        escape codes.
+    """
+
     bg = '\x1b[90m'
     colors = {
         'NONE': '',
@@ -33,6 +61,30 @@ class Grid():
 
     def __init__(self, m: fi.Map, csize: int = 6,
                  vpad: int = 1, hpad: int = 1) -> None:
+        """Initialize a Grid renderer bound to a given map.
+
+        Flattens the map's zones and connections, computes layout
+        parameters (cell size, padding, horizontal median), and builds
+        the initial ASCII grid.
+
+        Parameters
+        ----------
+        m : fi.Map
+            The map to render.
+        csize : int, optional
+            The width (in characters) of each rendered cell. Defaults
+            to 6.
+        vpad : int, optional
+            The number of scaffolding rows inserted between grid rows
+            vertically. Defaults to 1.
+        hpad : int, optional
+            The number of scaffolding columns inserted between grid
+            columns horizontally. Defaults to 1.
+
+        Returns
+        -------
+        None
+        """
         self.map: fi.Map = m
         self.zones: list[fi.Zone] = self.map.get_zones()
         # we unpack all connections in a flat list
@@ -67,6 +119,34 @@ class Grid():
 
     def rconnect(self, conn: list[list[int]], delay: int = 0,
                  a_char: str = '') -> bool:
+        """Recursively draw a connection line between two grid cells.
+
+        Walks from ``conn[0]`` toward ``conn[1]`` one step at a time
+        (diagonally when both axes differ, otherwise straight), marking
+        each intermediate empty cell with a connector glyph, and
+        optionally pausing ``delay`` seconds between steps for an
+        animated effect.
+
+        Parameters
+        ----------
+        conn : list[list[int]]
+            A two-element list ``[start, end]`` of ``[x, y]`` grid
+            coordinates describing the segment to draw.
+        delay : int, optional
+            Seconds to sleep after drawing each straight-line step.
+            Defaults to 0.
+        a_char : str, optional
+            If non-empty, use the alternate connector glyph (``'◯'``)
+            instead of the default (``'▫️'``) when marking straight-line
+            cells. Defaults to ``''``.
+
+        Returns
+        -------
+        bool
+            ``True`` once the start and end coordinates coincide
+            (recursion base case), ``False`` otherwise (returned by the
+            recursive branches after having drawn their segment).
+        """
         delta_x: int = conn[1][0] - conn[0][0]
         delta_y: int = conn[1][1] - conn[0][1]
         if delta_x == 0 and delta_y == 0:
@@ -114,6 +194,25 @@ class Grid():
 
     def bresenham(self, x0: int, y0: int, x1: int, y1: int)\
             -> list[tuple[int, int]]:
+        """Compute grid points on a line between two points (Bresenham's algorithm).
+
+        Parameters
+        ----------
+        x0 : int
+            X coordinate of the starting point.
+        y0 : int
+            Y coordinate of the starting point.
+        x1 : int
+            X coordinate of the ending point.
+        y1 : int
+            Y coordinate of the ending point.
+
+        Returns
+        -------
+        list[tuple[int, int]]
+            The sequence of ``(x, y)`` integer points forming a
+            straight line from ``(x0, y0)`` to ``(x1, y1)`` inclusive.
+        """
         points: list[tuple[int, int]] = []
         dx: int = abs(x1 - x0)
         dy: int = -abs(y1 - y0)
@@ -135,6 +234,17 @@ class Grid():
         return points
 
     def connect_grid(self) -> None:
+        """Draw all connection lines between zones onto the ASCII grid.
+
+        For each raw connection, computes its line points via
+        :meth:`bresenham` and marks the corresponding grid cells with a
+        connector glyph, embedding any in-transit drone markers
+        (``c[2]``) roughly at the midpoint of the line.
+
+        Returns
+        -------
+        None
+        """
         for c in self.raw_connections:
             points: list[tuple[int, int]] =\
                 self.bresenham(c[0][0], c[0][1], c[1][0], c[1][1])
@@ -158,6 +268,35 @@ class Grid():
 
     def base_grid(self, height: int, width: int,
                   vpad: int = 1, hpad: int = 1) -> list[list[str]]:
+        """Build the base ASCII grid, placing zone cells and scaffolding.
+
+        Constructs a padded 2D grid sized from ``height``/``width`` and
+        the given padding, filling non-zone positions with scaffolding
+        blocks and zone positions with a colored cell showing the
+        zone's current drone count. Also records each zone's raw grid
+        coordinates (``self.raw_zones``) and each connection's raw
+        origin/destination grid coordinates plus its current drones
+        (``self.raw_connections``) for later use by :meth:`connect_grid`.
+
+        Parameters
+        ----------
+        height : int
+            The map's logical height (number of rows of zones).
+        width : int
+            The map's logical width (number of columns of zones).
+        vpad : int, optional
+            Vertical scaffolding padding between zone rows. Defaults
+            to 1.
+        hpad : int, optional
+            Horizontal scaffolding padding between zone columns.
+            Defaults to 1.
+
+        Returns
+        -------
+        list[list[str]]
+            The constructed ASCII grid, as a list of rows of cell
+            strings.
+        """
         amap: list[list[str]] = []
         for r in range(2 + (height + ((height - 1) * vpad))):
             row: list[str] = []
@@ -199,6 +338,18 @@ class Grid():
 
     @staticmethod
     def get_conn_coords(c: fi.Connection) -> list[tuple[int, int] | list[int]]:
+        """Return a connection's origin and destination coordinates.
+
+        Parameters
+        ----------
+        c : fi.Connection
+            The connection to extract coordinates from.
+
+        Returns
+        -------
+        list[tuple[int, int] | list[int]]
+            A two-element list ``[origin_coords, dest_coords]``.
+        """
         src_coord: tuple[int, int] | list[int] = c.orig.coords
         dest_coord: tuple[int, int] | list[int] = c.dest.coords
         return [src_coord, dest_coord]
@@ -211,6 +362,23 @@ class Grid():
         if direction is 1
         note: since the function is many-to-one in one direction there is no
         unique inverse
+
+        Parameters
+        ----------
+        coords : list[int]
+            An ``[x, y]`` coordinate pair to transform.
+        direction : int, optional
+            ``0`` to convert grid coordinates to logical (zone)
+            coordinates; ``1`` for the (unimplemented) converse.
+            Defaults to 0.
+
+        Returns
+        -------
+        list[int]
+            The transformed ``[x, y]`` coordinate pair when
+            ``direction`` is 0. An empty list when ``direction`` is 1
+            or any other value, since the inverse transform is not
+            implemented (the mapping is many-to-one).
         '''
         if direction == 0:
             return [coords[0] // (self.hpad + 1), coords[1] // (self.vpad + 1)]
@@ -219,6 +387,24 @@ class Grid():
         return []
 
     def print_grid(self, msg: str, delay: float = 1) -> None:
+        """Clear the screen and render the current state of the map.
+
+        Rebuilds the base grid, draws all connections, prints the
+        resulting ANSI grid followed by ``msg``, and pauses for
+        ``delay`` seconds.
+
+        Parameters
+        ----------
+        msg : str
+            A message (e.g. controls/help text or turn log) to print
+            below the rendered grid.
+        delay : float, optional
+            Seconds to pause after printing. Defaults to 1.
+
+        Returns
+        -------
+        None
+        """
         CLEAR_SCREEN: str = '\x1b[2J\x1b[H'
         print(CLEAR_SCREEN)
         self.ascii_grid = self.base_grid(
