@@ -965,12 +965,17 @@ def parse_config(file: str) -> list[list[str] | list[list[list[str]]]]:
                         f'Zone types: {list(ZoneType.__members__.keys())}')
                 if metas[0].lower() == 'max_drones':
                     try:
-                        int(metas[1])
+                        value: int = int(metas[1])
+                        if value < 1:
+                            raise InputFileError(
+                                cline,
+                                cline_nr,
+                                Message='max_drones should be positive')
                     except Exception:
                         raise InputFileError(
                             cline,
                             cline_nr,
-                            Message='max_drones should be an integer')
+                            Message='max_drones should be a positive integer')
             if type.lower() == 'connection':
                 if metas[0].lower() != 'max_link_capacity':
                     raise InputFileError(
@@ -980,7 +985,12 @@ def parse_config(file: str) -> list[list[str] | list[list[list[str]]]]:
                         ' as a property.')
                 if metas[0].lower() == 'max_link_capacity':
                     try:
-                        int(metas[1])
+                        value = int(metas[1])
+                        if value < 1:
+                            raise InputFileError(
+                                cline,
+                                cline_nr,
+                                Message='max_link_capacity should be positive')
                     except Exception:
                         raise InputFileError(
                             cline,
