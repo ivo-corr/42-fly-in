@@ -663,6 +663,18 @@ def next_turn(m: Map) -> tuple[int, int, list[str]]:
     returns True when all drones reached goal
     False otherwise
     '''
+    def compare_path_lengths(
+            graph: list[tuple[int, int]],
+            orig: int,
+            next_forward: list[Zone]) -> Zone:
+        steps: list[tuple[Zone, int]] = []
+        for z in next_forward:
+            if goal_zone is not None:
+                steps.append((z, Map.hasPath(
+                    graph,
+                    (z.node(m), goal_zone.node(m)))))
+        return next_forward[0]
+
     move_count: int = 0
     moved_drones: list[tuple[str, Connection]] = []
     move_flag: bool = True
@@ -731,7 +743,7 @@ def next_turn(m: Map) -> tuple[int, int, list[str]]:
                     and nxtzone.type == "RESTRICTED"]
                 if len(next_forward_priority) > 0 and dr\
                         not in [md[0] for md in moved_drones]:
-                    result = m.move(z, next_forward_priority[0], dr)
+                    result = m.move(z, compare_path_lengths(m.get_graph(), z.node(m), next_forward_priority), dr)
                     conn = [
                         c for c in z.get_connections()
                         if c.dest == next_forward_priority[0]][0]
