@@ -13,6 +13,9 @@ install:
 run: install
 	$(PYTHON) $(MAIN)
 
+run-map: install
+	$(PYTHON) $(MAIN) --map $(MAP)
+
 debug: install
 	$(PYTHON) -m pdb $(MAIN)
 

@@ -1,5 +1,6 @@
 from enum import Enum
 import os
+import argparse
 
 
 class InputFileError(Exception):
@@ -769,9 +770,22 @@ if __name__ == "__main__":
 ██║     ███████╗██║          ██║██║ ╚████║
 ╚═╝     ╚══════╝╚═╝          ╚═╝╚═╝  ╚═══╝
 '''
-    pconfig: list[list[str] | list[list[list[str]]]] | None = select_map()
-    if pconfig is None:
-        exit(-1)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--map", type=str)
+    args = parser.parse_args()
+    if args.map is not None:
+        try:
+            with open('maps/'+args.map) as file:
+                print('\x1b[0m')
+                pconfig: list[list[str] | list[list[list[str]]]] = parse_config(
+                    file.read())
+        except Exception:
+            print("Map does not exist!\nExample: python3 fly_in.py --map 'easy/linear_path.txt'")
+            exit()
+    else:
+        pconfig: list[list[str] | list[list[list[str]]]] | None = select_map()
+        if pconfig is None:
+            exit(-1)
     try:
         m: Map = Map(pconfig)
     except SemanticError as e:
