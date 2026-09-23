@@ -1028,7 +1028,16 @@ def parse_config(file: str) -> list[list[str] | list[list[list[str]]]]:
             validate_md(meta, 'hub')
         if len(splat) < 2:
             raise InputFileError(line, line_nr, "Missing semicolon")
-        if ('-' in splat[0] or ' ' in splat[0]):
+        breakpoint()
+        spl = spl[:-1] if (spl := splat[1].split('[')[0])[-1] == ' ' else spl
+        if (len((splspl := spl.split(' '))) != 3):
+            if all(list(map(lambda x: x.isdigit(), splspl[-2:]))):
+                raise InputFileError(line, line_nr, "Zone names must"
+                                     " not contain dashes or spaces")
+            raise InputFileError(line, line_nr,
+                                 "Malformed line! Correct form:\n"
+                                 "hub: <str> <int> <int>")
+        if ('-' in spl.split(' ')[0]):
             raise InputFileError(line, line_nr, "Zone names must not contain"
                                  " dashes or spaces")
         try:
@@ -1168,6 +1177,7 @@ def parse_config(file: str) -> list[list[str] | list[list[list[str]]]]:
                 lst: list[str] = file.split('\n')
                 if n1 is None:
                     continue
+                breakpoint()
                 lines: list[tuple[str, int]] = [
                     (li, lst.index(li) + 1)
                     for li in file.split('\n')
