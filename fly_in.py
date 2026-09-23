@@ -1028,7 +1028,6 @@ def parse_config(file: str) -> list[list[str] | list[list[list[str]]]]:
             validate_md(meta, 'hub')
         if len(splat) < 2:
             raise InputFileError(line, line_nr, "Missing semicolon")
-        breakpoint()
         spl = spl[:-1] if (spl := splat[1].split('[')[0])[-1] == ' ' else spl
         if (len((splspl := spl.split(' '))) != 3):
             if all(list(map(lambda x: x.isdigit(), splspl[-2:]))):
@@ -1172,12 +1171,12 @@ def parse_config(file: str) -> list[list[str] | list[list[list[str]]]]:
         for resu in result[i+1:]:
             n1: str | None = rrr.split(' ')[0] if\
                 type(rrr := result[i][1]) is str else None
-            n2: str | None = rrrr if type(rrrr := resu[1]) is str else None
+            n2: str | None = rrrr.split(' ')[0] if type(rrrr := resu[1])\
+                is str else None
             if n1 == n2:
                 lst: list[str] = file.split('\n')
                 if n1 is None:
                     continue
-                breakpoint()
                 lines: list[tuple[str, int]] = [
                     (li, lst.index(li) + 1)
                     for li in file.split('\n')
@@ -1257,7 +1256,7 @@ def select_map() -> list[list[str] | list[list[list[str]]]] | None:
         print("\t\x1b[32m"+f'({files.index(f)})\t'+f+"\x1b[0m" if
               f.endswith(".txt") else
               "\t\x1b[31m"+f+" (not a text file)\x1b[0m")
-    choice = input("\n\x1b[46m## ")
+    choice = input("\n## ")
     if (choice not in [i[0] for i in file_index]):
         print('\x1b[0m')
         select_map()
@@ -1268,10 +1267,10 @@ def select_map() -> list[list[str] | list[list[list[str]]]] | None:
                 file.read())
         except InputFileError as e:
             if e.line is not None:
-                print(f"\x1b[43mInputFileError:\n{e}\n"
+                print(f"\x1b[30m\x1b[43mInputFileError:\n{e}\n"
                       f"(Line {e.line_nr}): \'{e.line}\'\x1b[0m")
             else:
-                print(f"\x1b[43mInputFileError:\n{e}")
+                print(f"\x1b[30m\x1b[43mInputFileError:\n{e}")
             return None
     return pconfig
 
