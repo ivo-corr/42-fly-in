@@ -486,7 +486,6 @@ to '{z2.name}'\x1b[0m''')
         if (type(z1) is not Zone or type(z2) is not Zone)\
                 or goal_zone is None:
             return False
-        
         steps_z1: int = Map.hasPath(
             self.get_graph(),
             (z1.node(self), goal_zone.node(self))
