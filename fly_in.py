@@ -222,7 +222,7 @@ class Map():
                     self._zones.append(
                         Zone(
                             name := c[1].split(" ")[0],
-                            c[0],
+                            c[0], self,
                             tmp := [
                                 c[1].split(" ")[1], '0' if
                                 absolute > delta else
@@ -255,7 +255,7 @@ class Map():
                         return
                     self._zones.append(
                         Zone(name := c[1].split(" ")[0],
-                             c[0],
+                             c[0], self,
                              tmp,
                              color=color,
                              capacity=int(drones_md)
@@ -481,6 +481,22 @@ to '{z2.name}'\x1b[0m''')
 
         return vertices
 
+    def comes_before(self, z1: "Zone", z2: "Zone") -> bool:
+        goal_zone: Zone | None = self.get_zone("goal")
+        if (type(z1) is not Zone or type(z2) is not Zone)\
+                or goal_zone is None:
+            return False
+        
+        steps_z1: int = Map.hasPath(
+            self.get_graph(),
+            (z1.node(self), goal_zone.node(self))
+        )
+        steps_z2: int = Map.hasPath(
+            self.get_graph(),
+            (z2.node(self), goal_zone.node(self))
+        )
+        return True if steps_z1 > steps_z2 else False
+
     def new_turn(self) -> tuple[int, int, list[str]]:
         '''
         next_turn runs the next simulation turn
@@ -555,17 +571,16 @@ to '{z2.name}'\x1b[0m''')
                     return (move_count, 1, tdata)
         # flushing locked drones entering into restricted zones
         for d in self.locked.copy():
-            if (d[1].available()):
-                conn: Connection = [
-                    z for z in (self.get_connections())
-                    if d[0] in z.drones][0]
-                result: str | None = self.move(conn, d[1], d[0])
-                if result is not None:
-                    tdata.append(result)
-                    moved_drones.append((d[0], conn))
-                    conn.transits += 1
-                    self.locked.remove((d[0], d[1]))
-                    move_count += 1
+            conn: Connection = [
+                z for z in (self.get_connections())
+                if d[0] in z.drones][0]
+            result: str | None = self.move(conn, d[1], d[0])
+            if result is not None:
+                tdata.append(result)
+                moved_drones.append((d[0], conn))
+                conn.transits += 1
+                self.locked.remove((d[0], d[1]))
+                move_count += 1
 
         # as long as there are moved drones keep checking if zones have been
         # unlocked making more moves are possible, same structureas bubble sort
@@ -605,6 +620,7 @@ to '{z2.name}'\x1b[0m''')
                                       (z.node(self), goal_zone.node(self)))
                         and step_count != -1
                         and nxtzone.type == "RESTRICTED"]
+
                     if len(next_forward_priority) > 0 and dr\
                             not in [md[0] for md in moved_drones]:
                         result = self.move(z, compare_path_lengths(
@@ -668,7 +684,7 @@ class Zone():
     objects to neighboring zones.
     """
 
-    def __init__(self, name: str, if_name: str,
+    def __init__(self, name: str, if_name: str, map: Map,
                  coords: tuple[str, str] | list[str],
                  type: str = 'NORMAL',
                  color: str = "NONE",
@@ -706,6 +722,7 @@ class Zone():
         self._connections: list[Connection] = []
         self.drones: list[str] = []
         self.capacity: int = capacity
+        self.map = map
         for dn in range(drones):
             self.drones.append("D"+str(dn))
 
@@ -766,9 +783,26 @@ class Zone():
         """
         if (self.type == "BLOCKED"):
             return False
+        if (self.type == 'RESTRICTED'):
+            inc_conns: list[Connection] = [
+                c for c in self.get_connections() if
+                self.map.comes_before(c.dest, self)]
+            for i in range(len(inc_conns)):
+                inc_conns[i] = [c for c in inc_conns[i].dest.get_connections()
+                                if c.orig == inc_conns[i].dest and
+                                c.dest == inc_conns[i].orig][0]
+            total_expected: int = sum(map(lambda x: len(x.drones), inc_conns))
+            if not total_expected < (self.capacity - len(self.drones)):
+                return False
         if (self.capacity == -1 or
                 len(self.drones) < self.capacity):
             return True
+        # here we manage the case where a restricted zone
+        # has more than one incoming connection and must
+        # not leave drones waiting in any of them.
+        # Availability will reflect not only current occupancy
+        # but also expected occupancy by counting the number of
+        # drones in incoming connections!
         return False
 
     def possible_moves(self) -> list["Zone"]:
