@@ -188,7 +188,7 @@ class Map():
             if ("nb_drones" in c[0]):
                 if (type(c[1]) is str):
                     self.drones = int(c[1])
-            if ('hub' in c[0]):
+            if ('hub' in c[0].lower() if type(c[0]) is str else c[0]):
                 # this branch of the if-else manages cases where we have
                 # coordinates in the y-axis
                 color: str = "NONE"
