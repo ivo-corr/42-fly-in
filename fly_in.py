@@ -619,6 +619,7 @@ to '{z2.name}'\x1b[0m''')
                                       (z.node(self), goal_zone.node(self)))
                         and step_count != -1
                         and nxtzone.type == "RESTRICTED"]
+
                     if len(next_forward_priority) > 0 and dr\
                             not in [md[0] for md in moved_drones]:
                         result = self.move(z, compare_path_lengths(
@@ -1335,7 +1336,7 @@ def main() -> None:
             print(f"\x1b[43mSemanticError:\n{e}\n")
             exit()
         g: graphics.Grid = graphics.Grid(mm, 3, vpad=5, hpad=5)
-        msg = "\nR: run simulation\nN: next turn\nQ: quit"
+        msg = "\nR: run simulation\nN: next turn\nS: select map\nQ: quit"
         g.print_grid(msg, delay=0.3)
         cmd: str = prompt()
         turn: int = 0
