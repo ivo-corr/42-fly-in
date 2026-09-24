@@ -1289,9 +1289,11 @@ def select_map() -> list[list[str] | list[list[list[str]]]] | None:
               f.endswith(".txt") else
               "\t\x1b[31m"+f+" (not a text file)\x1b[0m")
     choice = input("\n## ")
+    if choice.upper() == 'Q':
+        exit()
     if (choice not in [i[0] for i in file_index]):
         print('\x1b[0m')
-        select_map()
+        return select_map()
     with open('maps/'+[m[1] for m in file_index if m[0] == choice][0]) as file:
         print('\x1b[0m')
         try:
@@ -1337,6 +1339,9 @@ def main() -> None:
         cmd: str = input("\n## ")
         if (cmd.upper() == 'Q'):
             exit()
+        if (cmd.upper() not in ['N', 'R']):
+            print("Invalid command")
+            return prompt()
         return cmd.upper()
     parser = argparse.ArgumentParser()
     parser.add_argument("--map", type=str)
