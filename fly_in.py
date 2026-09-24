@@ -170,10 +170,10 @@ class Map():
             goal zone.
         """
         self._zones: list[Zone] = []
-        self.dimensions: list[int] = [0, 0]
-        self.drones: int = 0
-        self.locked: list[tuple[str, Connection | Zone]] = []
-        self.moved_drones: list[str] = []
+        self._dimensions: list[int] = [0, 0]
+        self._drones: int = 0
+        self._locked: list[tuple[str, Connection | Zone]] = []
+        self._moved_drones: list[str] = []
         delta: int = 0
         '''
         delta denotes the y-axis offset caused by the weird negative index
@@ -265,10 +265,10 @@ class Map():
                              type=ZoneType.__members__.get(
                                 zone_md.upper(), ZoneType.NORMAL).name,
                              drones=self.drones if name == "start" else 0))
-                if (int(tmp[0]) > self.dimensions[0]):
-                    self.dimensions[0] = int(tmp[0])
-                if (int(tmp[1]) > self.dimensions[1]):
-                    self.dimensions[1] = int(tmp[1])
+                if (int(tmp[0]) > self._dimensions[0]):
+                    self._dimensions[0] = int(tmp[0])
+                if (int(tmp[1]) > self._dimensions[1]):
+                    self._dimensions[1] = int(tmp[1])
             if type(c[0]) is not str or type(c[1]) is not str:
                 return
             if (c[0].lower() == "connection"):
@@ -290,10 +290,10 @@ class Map():
                                 z.set_connection(zz, capacity=mlc)
                                 zz.set_connection(z, capacity=mlc)
         for z in self._zones:
-            if (int(z.coords[0]) + 1 > self.dimensions[0]):
-                self.dimensions[0] = int(z.coords[0]) + 1
-            if (int(z.coords[1]) + 1 > self.dimensions[1]):
-                self.dimensions[1] = int(z.coords[1]) + 1
+            if (int(z.coords[0]) + 1 > self._dimensions[0]):
+                self._dimensions[0] = int(z.coords[0]) + 1
+            if (int(z.coords[1]) + 1 > self._dimensions[1]):
+                self._dimensions[1] = int(z.coords[1]) + 1
         if (self.drones > (cap := [z for z in self._zones
                            if z.if_name == 'start_hub'][0].capacity)
                 and cap > -1):
@@ -569,7 +569,7 @@ to '{z2.name}'\x1b[0m''')
                 if len(goal_zone.drones) == self.drones:
                     return (move_count, 1, tdata)
         # flushing locked drones entering into restricted zones
-        for d in self.locked.copy():
+        for d in self._locked.copy():
             conn: Connection = [
                 z for z in (self.get_connections())
                 if d[0] in z.drones][0]
@@ -578,7 +578,7 @@ to '{z2.name}'\x1b[0m''')
                 tdata.append(result)
                 moved_drones.append((d[0], conn))
                 conn.transits += 1
-                self.locked.remove((d[0], d[1]))
+                self._locked.remove((d[0], d[1]))
                 move_count += 1
 
         # as long as there are moved drones keep checking if zones have been
@@ -619,7 +619,6 @@ to '{z2.name}'\x1b[0m''')
                                       (z.node(self), goal_zone.node(self)))
                         and step_count != -1
                         and nxtzone.type == "RESTRICTED"]
-
                     if len(next_forward_priority) > 0 and dr\
                             not in [md[0] for md in moved_drones]:
                         result = self.move(z, compare_path_lengths(
@@ -659,7 +658,7 @@ to '{z2.name}'\x1b[0m''')
                             if c.dest == next_forward_restricted[0]][0]
                         result = self.move(z, conn, dr)
                         if result is not None:
-                            self.locked.append((dr, rdest))
+                            self._locked.append((dr, rdest))
                             moved_drones.append((dr, conn))
                             tdata.append(f"{dr}-{z.name}-{rdest.name}")
                             conn.transits += 1
@@ -1338,8 +1337,6 @@ def main() -> None:
         cmd: str = input("\n## ")
         if (cmd.upper() == 'Q'):
             exit()
-        if (cmd.upper() == 'S'):
-            return "S"
         return cmd.upper()
     parser = argparse.ArgumentParser()
     parser.add_argument("--map", type=str)
@@ -1365,7 +1362,7 @@ def main() -> None:
     except SemanticError as e:
         print(f"\x1b[43mSemanticError:\n{e}\n")
         exit()
-    print(f"Map size: {mm.dimensions}")
+    print(f"Map size: {mm._dimensions}")
     g: graphics.Grid = graphics.Grid(mm, 3, vpad=5, hpad=5)
     msg = "\nR: run simulation\nN: next turn\nQ: quit"
     g.print_grid(msg, delay=0.3)
@@ -1381,8 +1378,6 @@ def main() -> None:
         g.print_grid(
             msg + f'\n\n─── Turn {turn} ───\n' + '\n'.join(tdata) +
             '\n──────────────')
-        # if len(m.get_zone('bottleneck2').drones) > 0:
-        #     breakpoint()
         if (cmd != 'R'):
             cmd = prompt()
         if (finished):

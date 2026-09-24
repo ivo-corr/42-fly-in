@@ -85,37 +85,37 @@ class Grid():
         -------
         None
         """
-        self.map: fi.Map = m
-        self.zones: list[fi.Zone] = self.map.get_zones()
+        self._map: fi.Map = m
+        self._zones: list[fi.Zone] = self._map.get_zones()
         # we unpack all connections in a flat list
-        self.connections: list[fi.Connection] = [
+        self._connections: list[fi.Connection] = [
             element for sublist in [ee for ee in [
-                c for c in [z.get_connections() for z in self.zones]
+                c for c in [z.get_connections() for z in self._zones]
                 ]] for element in sublist]
         # we select only the connections that need to be rendered
-        # self.connections = list(
+        # self._connections = list(
         #     filter(lambda x: x.dest.coords[0] > x.orig.coords[0],
-        #            self.connections))
-        self.raw_zones: list[list[int]] = []
-        self.raw_connections: list[list[list[Any]]] = []
+        #            self._connections))
+        self._raw_zones: list[list[int]] = []
+        self._raw_connections: list[list[list[Any]]] = []
         # we translate each connection to a set of coordinates
         # self.conn_coordinates: list[list[list[int]]] = list(
         #     map(lambda x: Grid.get_conn_coords(x),
-        #         self.raw_connections))
+        #         self._raw_connections))
         # cell size
-        self.csize: int = csize
+        self._csize: int = csize
         # vertical padding: amount of scaffolding between cells vertically
-        self.vpad: int = vpad
+        self._vpad: int = vpad
         # horizontal padding: amount of scaffolding between cells horizontally
-        self.hpad: int = hpad
+        self._hpad: int = hpad
         # horizontal median for symmetric connection rendering
-        self.hmedian: int = (self.map.dimensions[1]//2) + 1 + self.vpad
-        self.bg_color: str = self.colors['BACKGROUND']
-        self.scaffolding: str = f'{self.bg_color}█' * self.csize +\
+        self._hmedian: int = (self._map._dimensions[1]//2) + 1 + self._vpad
+        self._bg_color: str = self.colors['BACKGROUND']
+        self._scaffolding: str = f'{self._bg_color}█' * self._csize +\
             self.colors['END']
-        self.ascii_grid: list[list[str]] = self.base_grid(
-            self.map.dimensions[1], self.map.dimensions[0],
-            self.vpad, hpad=self.hpad)
+        self._ascii_grid: list[list[str]] = self.base_grid(
+            self._map._dimensions[1], self._map._dimensions[0],
+            self._vpad, hpad=self._hpad)
 
     def rconnect(self, conn: list[list[int]], delay: int = 0,
                  a_char: str = '') -> bool:
@@ -156,8 +156,8 @@ class Grid():
             if delta_y > 0:
                 self.ascii_grid[conn[0][1]][conn[0][0]] = (
                     self.colors['BACKGROUND'] + self.colors['BG_BG'] +
-                    '█' * (self.csize // 2)) + '▫️' +\
-                    ('█' * (self.csize // 2)) + self.colors['END']
+                    '█' * (self._csize // 2)) + '▫️' +\
+                    ('█' * (self._csize // 2)) + self.colors['END']
             self.rconnect([[conn[0][0] + 1, conn[0][1] - 1], conn[1]])
         else:
             if delta_x > 0:
@@ -166,14 +166,14 @@ class Grid():
                     if (a_char == ''):
                         self.ascii_grid[conn[0][1]][conn[0][0]] = (
                             self.colors['BACKGROUND'] + self.colors['BG_BG'] +
-                            '█' * (self.csize // 2)) + '▫️' +\
-                                ('█' * (self.csize // 2)) + self.colors['END']
+                            '█' * (self._csize // 2)) + '▫️' +\
+                                ('█' * (self._csize // 2)) + self.colors['END']
                         sleep(delay)
                     else:
                         self.ascii_grid[conn[0][1]][conn[0][0]] = (
                             self.colors['BACKGROUND'] + self.colors['BG_BG'] +
-                            '█' * (self.csize // 2)) + '◯' +\
-                                ('█' * (self.csize // 2)) + self.colors['END']
+                            '█' * (self._csize // 2)) + '◯' +\
+                                ('█' * (self._csize // 2)) + self.colors['END']
                 self.rconnect([[conn[0][0] + 1, conn[0][1]], conn[1]])
             if delta_x == 0 and delta_y != 0:
                 if ' ' not in self.ascii_grid[conn[0][1]][conn[0][0]]\
@@ -181,8 +181,8 @@ class Grid():
                     if (a_char == ''):
                         self.ascii_grid[conn[0][1]][conn[0][0]] = (
                             self.colors['BACKGROUND'] + self.colors['BG_BG'] +
-                            '█' * (self.csize // 2)) + '▫️' +\
-                                ('█' * (self.csize // 2)) + self.colors['END']
+                            '█' * (self._csize // 2)) + '▫️' +\
+                                ('█' * (self._csize // 2)) + self.colors['END']
                     else:
                         pass
                 sleep(delay)
@@ -246,7 +246,7 @@ class Grid():
         -------
         None
         """
-        for c in self.raw_connections:
+        for c in self._raw_connections:
             points: list[tuple[int, int]] =\
                 self.bresenham(c[0][0], c[0][1], c[1][0], c[1][1])
             for p in points:
@@ -259,13 +259,13 @@ class Grid():
                                 (len(c[2])//2) + 1):
                             self.ascii_grid[p[1] - 1][p[0]] = (
                                 self.colors['BACKGROUND'] +
-                                '█' * (((self.csize) // 2) - 1)) + c[2][0] +\
-                                ('█' * (self.csize // 2)) + self.colors['END']
+                                '█' * (((self._csize) // 2) - 1)) + c[2][0] +\
+                                ('█' * (self._csize // 2)) + self.colors['END']
                             c[2].remove(c[2][0])
                     self.ascii_grid[p[1]][p[0]] = (
                         self.colors['BACKGROUND'] + self.colors['BG_BG'] +
-                        '█' * (self.csize // 2)) + '▫️' +\
-                        ('█' * (self.csize // 2)) + self.colors['END']
+                        '█' * (self._csize // 2)) + '▫️' +\
+                        ('█' * (self._csize // 2)) + self.colors['END']
 
     def base_grid(self, height: int, width: int,
                   vpad: int = 1, hpad: int = 1) -> list[list[str]]:
@@ -275,9 +275,9 @@ class Grid():
         the given padding, filling non-zone positions with scaffolding
         blocks and zone positions with a colored cell showing the
         zone's current drone count. Also records each zone's raw grid
-        coordinates (``self.raw_zones``) and each connection's raw
+        coordinates (``self._raw_zones``) and each connection's raw
         origin/destination grid coordinates plus its current drones
-        (``self.raw_connections``) for later use by :meth:`connect_grid`.
+        (``self._raw_connections``) for later use by :meth:`connect_grid`.
 
         Parameters
         ----------
@@ -303,37 +303,37 @@ class Grid():
             row: list[str] = []
             for c in range(2 + (width + ((width - 1) * hpad))):
                 if not ((r % (vpad + 1) == 1) and (c % (hpad + 1) == 1)):
-                    row.append(self.scaffolding)
+                    row.append(self._scaffolding)
                 elif (self.tr([c, r]) in
-                      [z.coords for z in self.map.get_zones()]):
-                    color = [z for z in self.map.get_zones() if z.coords ==
+                      [z.coords for z in self._map.get_zones()]):
+                    color = [z for z in self._map.get_zones() if z.coords ==
                              self.tr([c, r])][0].color
-                    zdrones = [len(z.drones) for z in self.map.get_zones()
+                    zdrones = [len(z.drones) for z in self._map.get_zones()
                                if z.coords == self.tr([c, r])][0]
                     zdrones_digits = len(str(zdrones))
                     if (color in self.colors.keys()):
                         row.append(self.colors[color] + str(zdrones) + " " *
-                                   (self.csize - zdrones_digits))
+                                   (self._csize - zdrones_digits))
                     else:
                         row.append(self.colors["NOT_FOUND"] + str(zdrones) +
-                                   " " * (self.csize - zdrones_digits))
-                    self.raw_zones.append([c, r])
+                                   " " * (self._csize - zdrones_digits))
+                    self._raw_zones.append([c, r])
                     # print(f"{[self.tr([c,r])]} correlates to {[c,r]} ")
                 else:
                     # check if this is part of a connection line
                     if (True):
-                        row.append(self.scaffolding)
+                        row.append(self._scaffolding)
             amap.append(row)
-        for cn in self.connections:
+        for cn in self._connections:
             origin = list(
                 filter(
-                    lambda x: self.tr(x) == cn.orig.coords, self.raw_zones))[
+                    lambda x: self.tr(x) == cn.orig.coords, self._raw_zones))[
                     0]
             destination = list(
                 filter(
-                    lambda x: self.tr(x) == cn.dest.coords, self.raw_zones))[
+                    lambda x: self.tr(x) == cn.dest.coords, self._raw_zones))[
                     0]
-            self.raw_connections.append(
+            self._raw_connections.append(
                 [origin, destination, cn.drones.copy()])
         return (amap)
 
@@ -382,7 +382,7 @@ class Grid():
             implemented (the mapping is many-to-one).
         '''
         if direction == 0:
-            return [coords[0] // (self.hpad + 1), coords[1] // (self.vpad + 1)]
+            return [coords[0] // (self._hpad + 1), coords[1] // (self._vpad + 1)]
         if direction == 1:
             return []
         return []
@@ -409,8 +409,8 @@ class Grid():
         CLEAR_SCREEN: str = '\x1b[2J\x1b[H'
         print(CLEAR_SCREEN)
         self.ascii_grid = self.base_grid(
-            self.map.dimensions[1], self.map.dimensions[0],
-            self.vpad, hpad=self.hpad)
+            self._map._dimensions[1], self._map._dimensions[0],
+            self._vpad, hpad=self._hpad)
         self.connect_grid()
         for row in self.ascii_grid:
             for cell in row:
