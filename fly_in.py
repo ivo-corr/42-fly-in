@@ -1340,7 +1340,6 @@ def main() -> None:
         if (cmd.upper() == 'Q'):
             exit()
         if (cmd.upper() not in ['N', 'R']):
-            print("Invalid command")
             return prompt()
         return cmd.upper()
     parser = argparse.ArgumentParser()

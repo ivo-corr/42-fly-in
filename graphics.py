@@ -382,7 +382,8 @@ class Grid():
             implemented (the mapping is many-to-one).
         '''
         if direction == 0:
-            return [coords[0] // (self._hpad + 1), coords[1] // (self._vpad + 1)]
+            return [coords[0] // (self._hpad + 1),
+                    coords[1] // (self._vpad + 1)]
         if direction == 1:
             return []
         return []
