@@ -75,15 +75,15 @@ class TestParsing(unittest.TestCase):
         with self.assertRaises(Exception):
             with open("test_maps/14.txt") as file:
                 parse_config(file.read())
+
+    def test_connection_metadata2(self) -> None:
+        with self.assertRaises(Exception):
+            with open("test_maps/15.txt") as file:
+                parse_config(file.read())
     if STRICT:
         def test_zone_same_coords(self) -> None:
             with self.assertRaises(Exception):
                 with open("test_maps/14.txt") as file:
-                    parse_config(file.read())
-
-        def test_connection_metadata2(self) -> None:
-            with self.assertRaises(Exception):
-                with open("test_maps/15.txt") as file:
                     parse_config(file.read())
 
 

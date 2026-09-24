@@ -1240,75 +1240,6 @@ def parse_config(file: str) -> list[list[str] | list[list[list[str]]]]:
     return (result)
 
 
-def select_map() -> list[list[str] | list[list[list[str]]]] | None:
-    """Interactively prompt the user to pick a map file from ``maps/``.
-
-    Prints a title banner and a listing of available map files (grouped
-    by subdirectory), reads the user's numeric choice from stdin, then
-    parses the chosen file via :func:`parse_config`.
-
-    Returns
-    -------
-    list[list[str] | list[list[list[str]]]] | None
-        The parsed map configuration for the chosen file, or ``None`` if
-        the chosen file failed to parse (an :class:`InputFileError` was
-        caught and reported).
-    """
-    CLEAR_SCREEN: str = '\x1b[2J\x1b[H'
-    TITLE: str = '''
-███████╗██╗  ██╗   ██╗       ██╗███╗   ██╗
-██╔════╝██║  ╚██╗ ██╔╝       ██║████╗  ██║
-█████╗  ██║   ╚████╔╝        ██║██╔██╗ ██║
-██╔══╝  ██║    ╚██╔╝         ██║██║╚██╗██║
-██║     ███████╗██║          ██║██║ ╚████║
-╚═╝     ╚══════╝╚═╝          ╚═╝╚═╝  ╚═══╝
-'''
-    print(CLEAR_SCREEN)
-    print('\x1b[36m'+TITLE+'\x1b[0m')
-    print("\x1b[42m\n")
-    print("Hello please pick a map\n\x1b[0m")
-    file_index: list[list[str]] = []
-    directory: str = 'maps/'
-    directories = [d for d in os.listdir(directory) if
-                   os.path.isdir(os.path.join(directory, d))]
-    files = [f for f in os.listdir(directory) if
-             os.path.isfile(os.path.join(directory, f))]
-    for d in directories:
-        dfiles = [f for f in os.listdir(directory+"/"+d) if
-                  os.path.isfile(os.path.join(directory+"/"+d, f))]
-        print("\t\x1b[34m" + d + "/\x1b[0m")
-        for df in dfiles:
-            if df.endswith(".txt"):
-                file_index.append([str(directories.index(d)) + '.' +
-                                   str(dfiles.index(df)), d+'/'+df])
-            print("\t\t\x1b[32m"+f'({directories.index(d)}.{dfiles.index(df)})\
-                  \t'+df+"\x1b[0m" if df.endswith(".txt") else
-                  "\t\x1b[31m"+df+" (not a text file)\x1b[0m")
-    for f in files:
-        print("\t\x1b[32m"+f'({files.index(f)})\t'+f+"\x1b[0m" if
-              f.endswith(".txt") else
-              "\t\x1b[31m"+f+" (not a text file)\x1b[0m")
-    choice = input("\n## ")
-    if choice.upper() == 'Q':
-        exit()
-    if (choice not in [i[0] for i in file_index]):
-        print('\x1b[0m')
-        return select_map()
-    with open('maps/'+[m[1] for m in file_index if m[0] == choice][0]) as file:
-        print('\x1b[0m')
-        try:
-            pconfig: list[list[str] | list[list[list[str]]]] = parse_config(
-                file.read())
-        except InputFileError as e:
-            if e.line is not None:
-                print(f"\x1b[30m\x1b[43mInputFileError:\n{e}\n"
-                      f"(Line {e.line_nr}): \'{e.line}\'\x1b[0m")
-            else:
-                print(f"\x1b[30m\x1b[43mInputFileError:\n{e}")
-            return None
-    return pconfig
-
-
 def main() -> None:
     """Run the drone simulation CLI: select a map, then step turns
     interactively.
@@ -1326,6 +1257,112 @@ def main() -> None:
     """
     import graphics
 
+    def select_map() -> list[list[str] | list[list[list[str]]]] | None:
+        """Interactively prompt the user to pick a map file from ``maps/``.
+
+        Prints a title banner and a listing of available map files (grouped
+        by subdirectory), reads the user's numeric choice from stdin, then
+        parses the chosen file via :func:`parse_config`.
+
+        Returns
+        -------
+        list[list[str] | list[list[list[str]]]] | None
+            The parsed map configuration for the chosen file, or ``None`` if
+            the chosen file failed to parse (an :class:`InputFileError` was
+            caught and reported).
+        """
+        CLEAR_SCREEN: str = '\x1b[2J\x1b[H'
+        TITLE: str = '''
+    ███████╗██╗  ██╗   ██╗       ██╗███╗   ██╗
+    ██╔════╝██║  ╚██╗ ██╔╝       ██║████╗  ██║
+    █████╗  ██║   ╚████╔╝        ██║██╔██╗ ██║
+    ██╔══╝  ██║    ╚██╔╝         ██║██║╚██╗██║
+    ██║     ███████╗██║          ██║██║ ╚████║
+    ╚═╝     ╚══════╝╚═╝          ╚═╝╚═╝  ╚═══╝
+    '''
+        print(CLEAR_SCREEN)
+        print('\x1b[36m'+TITLE+'\x1b[0m')
+        print("\x1b[42m\n")
+        print("Hello please pick a map\n\x1b[0m")
+        file_index: list[list[str]] = []
+        directory: str = 'maps/'
+        directories = [d for d in os.listdir(directory) if
+                       os.path.isdir(os.path.join(directory, d))]
+        files = [f for f in os.listdir(directory) if
+                 os.path.isfile(os.path.join(directory, f))]
+        for d in directories:
+            dfiles = [f for f in os.listdir(directory+"/"+d) if
+                      os.path.isfile(os.path.join(directory+"/"+d, f))]
+            print("\t\x1b[34m" + d + "/\x1b[0m")
+            for df in dfiles:
+                if df.endswith(".txt"):
+                    file_index.append([str(directories.index(d)) + '.' +
+                                       str(dfiles.index(df)), d+'/'+df])
+                print("\t\t\x1b[32m"+f'({directories.index(d)}.{dfiles.index(df)})\
+                      \t'+df+"\x1b[0m" if df.endswith(".txt") else
+                      "\t\x1b[31m"+df+" (not a text file)\x1b[0m")
+        for f in files:
+            print("\t\x1b[32m"+f'({files.index(f)})\t'+f+"\x1b[0m" if
+                  f.endswith(".txt") else
+                  "\t\x1b[31m"+f+" (not a text file)\x1b[0m")
+        choice = input("\n## ")
+        if choice.upper() == 'Q':
+            exit()
+        if (choice not in [i[0] for i in file_index]):
+            print('\x1b[0m')
+            return select_map()
+        with open('maps/'+[m[1] for m in file_index if m[0] == choice][0])\
+                as file:
+            print('\x1b[0m')
+            try:
+                pconfig: list[list[str]
+                              | list[list[list[str]]]] = parse_config(
+                    file.read())
+            except InputFileError as e:
+                if e.line is not None:
+                    print(f"\x1b[30m\x1b[43mInputFileError:\n{e}\n"
+                          f"(Line {e.line_nr}): \'{e.line}\'\x1b[0m")
+                else:
+                    print(f"\x1b[30m\x1b[43mInputFileError:\n{e}")
+                return None
+        return pconfig
+
+    def run_map(pconfig: list[list[str] | list[list[list[str]]]] | None)\
+            -> int | None:
+        try:
+            mm: Map = Map(pconfig)
+        except SemanticError as e:
+            print(f"\x1b[43mSemanticError:\n{e}\n")
+            exit()
+        g: graphics.Grid = graphics.Grid(mm, 3, vpad=5, hpad=5)
+        msg = "\nR: run simulation\nN: next turn\nQ: quit"
+        g.print_grid(msg, delay=0.3)
+        cmd: str = prompt()
+        turn: int = 0
+        finished: int
+        tdata: list[str]
+        output_f: str = ""
+        while (True):
+            if (cmd == 'S'):
+                return None
+            tmoves, finished, tdata = mm.new_turn()
+            output_f += (" ".join(tdata) + '\n').replace('  ', ' ')
+            g = graphics.Grid(mm, 3, vpad=5, hpad=5)
+            g.print_grid(
+                msg + f'\n\n─── Turn {turn} ───\n' + '\n'.join(tdata) +
+                '\n──────────────')
+            if (cmd not in 'R'):
+                cmd = prompt()
+            if (finished):
+                break
+            turn += 1
+        with open("output.txt", 'w') as file:
+            file.write(output_f)
+        print("\n\x1b[42m\x1b[30mSimulation finished successfully!\x1b[0m\n")
+        print(f"Total number of turns: {turn+1}")
+        cmd = prompt()
+        return turn+1 if cmd.upper() in ['R', 'N'] else None
+
     def prompt() -> str:
         """Read and normalize a single command from the user.
 
@@ -1339,7 +1376,7 @@ def main() -> None:
         cmd: str = input("\n## ")
         if (cmd.upper() == 'Q'):
             exit()
-        if (cmd.upper() not in ['N', 'R']):
+        if (cmd.upper() not in ['N', 'R', 'S']):
             return prompt()
         return cmd.upper()
     parser = argparse.ArgumentParser()
@@ -1361,39 +1398,8 @@ def main() -> None:
         pconfig = select_map()
         if pconfig is None:
             exit(-1)
-    try:
-        mm: Map = Map(pconfig)
-    except SemanticError as e:
-        print(f"\x1b[43mSemanticError:\n{e}\n")
-        exit()
-    print(f"Map size: {mm._dimensions}")
-    g: graphics.Grid = graphics.Grid(mm, 3, vpad=5, hpad=5)
-    msg = "\nR: run simulation\nN: next turn\nQ: quit"
-    g.print_grid(msg, delay=0.3)
-    cmd: str = prompt()
-    turn: int = 0
-    finished: int
-    tdata: list[str]
-    output_f: str = ""
-    while (True):
-        tmoves, finished, tdata = mm.new_turn()
-        output_f += (" ".join(tdata) + '\n').replace('  ', ' ')
-        g = graphics.Grid(mm, 3, vpad=5, hpad=5)
-        g.print_grid(
-            msg + f'\n\n─── Turn {turn} ───\n' + '\n'.join(tdata) +
-            '\n──────────────')
-        if (cmd != 'R'):
-            cmd = prompt()
-        if (finished):
-            break
-        turn += 1
-    with open("output.txt", 'w') as file:
-        file.write(output_f)
-
-    print("\n\x1b[42m\x1b[30mSimulation finished successfully!\x1b[0m\n")
-    print(f"Total number of turns: {turn+1}")
-    # except Exception as e:
-    #     print(e)
+        while (run_map(pconfig) is None):
+            pconfig = select_map()
 
 
 if __name__ == "__main__":
