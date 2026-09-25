@@ -269,6 +269,7 @@ class Map():
                     self._dimensions[0] = int(tmp[0])
                 if (int(tmp[1]) > self._dimensions[1]):
                     self._dimensions[1] = int(tmp[1])
+                zone_md = ''
             if type(c[0]) is not str or type(c[1]) is not str:
                 return
             if (c[0].lower() == "connection"):
