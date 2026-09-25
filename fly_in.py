@@ -230,7 +230,7 @@ class Map():
                             color=color,
                             capacity=int(md) if ["max_drones"] in meta
                             else 1 if name != 'start' and name != 'goal'
-                            else -1,
+                            else self.drones,
                             type=ZoneType.__members__.get(
                                 zone_md.upper(), ZoneType.NORMAL).name,
                             drones=self.drones if name ==
@@ -261,7 +261,7 @@ class Map():
                              capacity=int(drones_md)
                              if ["max_drones"] in meta
                              else 1 if name != 'start' and name != 'goal'
-                             else -1,
+                             else self.drones,
                              type=ZoneType.__members__.get(
                                 zone_md.upper(), ZoneType.NORMAL).name,
                              drones=self.drones if name == "start" else 0))
@@ -619,7 +619,6 @@ to '{z2.name}'\x1b[0m''')
                                       (z.node(self), goal_zone.node(self)))
                         and step_count != -1
                         and nxtzone.type == "RESTRICTED"]
-
                     if len(next_forward_priority) > 0 and dr\
                             not in [md[0] for md in moved_drones]:
                         result = self.move(z, compare_path_lengths(
