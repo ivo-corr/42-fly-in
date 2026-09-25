@@ -1332,7 +1332,7 @@ def main() -> None:
         try:
             mm: Map = Map(pconfig)
         except SemanticError as e:
-            print(f"\x1b[43mSemanticError:\n{e}\n")
+            print(f"\x1b[32\x1b[45mSemanticError:\n{e}\n")
             exit()
         g: graphics.Grid = graphics.Grid(mm, 3, vpad=5, hpad=5)
         msg = "\nR: run simulation\nN: next turn\nS: select map\nQ: quit"
